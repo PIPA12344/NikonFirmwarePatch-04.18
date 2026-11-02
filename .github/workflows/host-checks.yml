@@ -1,0 +1,143 @@
+name: Host checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      firmware_smoke:
+        description: 'Run Windows prebuilt firmware checks with hash-pinned public inputs'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  paths:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            python: '3.12'
+          - os: windows-latest
+            python: '3.13'
+          - os: ubuntu-latest
+            python: '3.12'
+          - os: macos-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -B tests/test_compiled_paths.py
+
+  log3g10-math:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-log3g10-research.txt
+      # Firmware-dependent cases skip without a local official input.
+      - run: python -B -m unittest tests.test_log3g10 -v
+
+  windows-toolkit:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.firmware_smoke
+    needs: paths
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.13']
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify public prebuilt units and obtain official input
+        shell: python
+        run: |
+          import hashlib, io, json, os, sys, urllib.request, zipfile
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          sys.path.insert(0, str(root))
+          from tools.check_release import SOURCE_FILES
+          work = Path(os.environ['RUNNER_TEMP']) / 'nikon-smoke'
+          work.mkdir(exist_ok=False)
+          # r1 changes host code only. Use the unchanged public v0.3.0 machine code,
+          # retaining read-only permissions and never requiring access to a draft.
+          url = 'https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/download/v0.3.0/NikonFirmwarePatch-v0.3.0-toolkit.zip'
+          expected_zip = '126f05abae535cf0e2844e938920c15acc67d7b144d7bd363dc0af97e6365cad'
+          with urllib.request.urlopen(url, timeout=60) as response:
+              archive_bytes = response.read(8 * 1024 * 1024 + 1)
+          if hashlib.sha256(archive_bytes).hexdigest() != expected_zip:
+              raise ValueError('Public base toolkit digest mismatch')
+          units = json.loads((root / 'resources/compiled.json').read_text(encoding='utf-8'))['units']
+          code_hashes = {}
+          with zipfile.ZipFile(io.BytesIO(archive_bytes)) as package:
+              prefix = 'NikonFirmwarePatch-v0.3.0/'
+              if package.read(prefix + 'resources/compiled.json') != (root / 'resources/compiled.json').read_bytes():
+                  raise ValueError('Machine-code profiles changed; this host-only smoke fixture must be reviewed')
+              for unit in units.values():
+                  name = unit['resource']
+                  raw = package.read(prefix + name)
+                  if len(raw) != unit['bytes'] or hashlib.sha256(raw).hexdigest() != unit['sha256']:
+                      raise ValueError('Unreviewed prebuilt unit: ' + name)
+                  with (root / name).open('xb') as output:
+                      output.write(raw)
+                  code_hashes[name] = hashlib.sha256(raw).hexdigest()
+          inputs = {'source_commit': os.environ['GITHUB_SHA'], 'base_toolkit_sha256': expected_zip,
+                    'source_files_sha256': {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in SOURCE_FILES},
+                    'compiled_units_sha256': code_hashes,
+                    'scope': 'Native Windows checkout and prebuilt bytes; compare every source/code hash with the final release ZIP'}
+          (work / 'host-inputs.json').write_text(json.dumps(inputs, indent=2) + '\n', encoding='utf-8')
+          expected = json.loads((root / 'resources/input.json').read_text(encoding='utf-8'))
+          url = 'https://download.nikonimglib.com/archive8/wP5Vr003qbpC07ibhJ666rmRfF47/Z_8_0311.bin'
+          received = 0
+          digest = hashlib.sha256()
+          with urllib.request.urlopen(url, timeout=60) as response, (work / 'Z_8_0311.bin').open('xb') as output:
+              while chunk := response.read(1024 * 1024):
+                  received += len(chunk)
+                  if received > expected['bytes']:
+                      raise ValueError('Unexpected stock response size')
+                  output.write(chunk)
+                  digest.update(chunk)
+          if received != expected['bytes'] or digest.hexdigest() != expected['sha256']:
+              raise ValueError('Official input digest mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env:
+              env.write('TOOLKIT_ROOT=' + str(root) + '\n')
+      - name: Install pinned verifier dependency
+        run: python -m pip install -r "$env:TOOLKIT_ROOT/requirements.txt"
+      - name: Test matching source and prebuilt units on Windows
+        run: python -B "$env:TOOLKIT_ROOT/tests/test_compiled_paths.py"
+      - name: Build reported and all-feature selections without a compiler
+        run: python -B "$env:TOOLKIT_ROOT/tests/validate_prebuilt_cli.py" --stock "$env:RUNNER_TEMP/nikon-smoke/Z_8_0311.bin" --report "$env:RUNNER_TEMP/nikon-smoke/report.json"
+      - name: Preserve only the small verification report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-prebuilt-${{ matrix.python }}
+          path: |
+            ${{ runner.temp }}/nikon-smoke/report.json
+            ${{ runner.temp }}/nikon-smoke/host-inputs.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Remove temporary input and outputs
+        if: always()
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP/nikon-smoke") { Remove-Item -LiteralPath "$env:RUNNER_TEMP/nikon-smoke" -Recurse -Force }
