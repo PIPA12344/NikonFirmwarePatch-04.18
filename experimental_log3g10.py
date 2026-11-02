@@ -18,7 +18,7 @@ from z8log3g10.verify import expected_payload, verify_candidate
 
 
 def build_experiment(stock_path, output, features=FEATURES, version='04.13', tag='e0', gamut='bt2020', card_wav=False,
-                     compiler='clang', code_source='prebuilt'):
+                     compiler='clang', code_source='prebuilt', card_wav_source='prebuilt'):
     output = Path(output)
     p.need(not output.exists(), 'Output directory already exists')
     features = selected_features(features)
@@ -27,11 +27,12 @@ def build_experiment(stock_path, output, features=FEATURES, version='04.13', tag
     require_official_input(raw)
     original = Package(raw)
     keep = output.with_name(output.name + '-card-wav-build') if card_wav else None
-    payload, image, meta = expected_payload(original.eg, features, version, tag, gamut, card_wav, keep, compiler, code_source)
+    payload, image, meta = expected_payload(original.eg, features, version, tag, gamut, card_wav, keep, compiler, code_source,
+                                            card_wav_source)
     module_name = 'eg2070_' + version.replace('.', '') + tag + '.bi'
     packet = stack.pack(original, payload, module_name) if card_wav else original.replace_eg(payload, module_name)[0]
     checked = verify_candidate(raw, packet, features, version, tag, gamut=gamut, card_wav=card_wav,
-                               compiler=compiler, code_source=code_source)
+                               compiler=compiler, code_source=code_source, card_wav_source=card_wav_source)
     rows = [dict(offset=hex(e['offset']), bytes=len(e['new']), purpose=e['purpose'],
                  before_sha256=p.sha(e['old']), after_sha256=p.sha(e['new'])) for e in image.edits]
     meta.update(created_at=datetime.now(timezone(timedelta(hours=8))).isoformat(),
@@ -130,7 +131,9 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--features', nargs='+', choices=FEATURES, default=list(FEATURES))
     parser.add_argument('--gamut', choices=tuple(p.PROFILES), default='bt2020')
-    parser.add_argument('--card-wav', action='store_true', help='Add the GPL-3.0-or-later card WAV shutter sound port (needs LLVM)')
+    parser.add_argument('--card-wav', action='store_true', help='Add the GPL-3.0-or-later card WAV shutter sound port')
+    parser.add_argument('--card-wav-source', choices=('prebuilt', 'source'), default='prebuilt',
+                        help='prebuilt fills resources/cardwav.bin from the input; source compiles with LLVM (Z8_LLVM_BIN)')
     parser.add_argument('--code-source', choices=('prebuilt', 'source'), default='prebuilt',
                         help='prebuilt reads resources/*.bin from the v0.3.0-r1 toolkit; source compiles them with --compiler')
     parser.add_argument('--compiler', default='clang', help='Clang executable for --code-source source')
@@ -140,7 +143,7 @@ def main():
     identity.add_argument('--no-tag', action='store_const', dest='tag', const='', help='Use plain version NN.NN with zero-padded fixed identity slots')
     args = parser.parse_args()
     result = build_experiment(args.stock, args.output, args.features, args.version, args.tag, args.gamut, args.card_wav,
-                              args.compiler, args.code_source)
+                              args.compiler, args.code_source, args.card_wav_source)
     print(json.dumps(dict(output=str(args.output.resolve()), status=result['status'],
                           identity=result['output_identity'], verification=result['verification']), indent=2))
 

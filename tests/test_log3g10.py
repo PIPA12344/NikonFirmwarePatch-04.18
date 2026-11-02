@@ -324,8 +324,8 @@ class FirmwareTests(unittest.TestCase):
         from z8cardwav import stack
         from z8log3g10.verify import expected_payload, verify_candidate
         from z8log3g10.matrix import MATRIX_VA, matrix_bytes
-        if not Path(stack.LLVM).is_dir():
-            self.skipTest('LLVM required')
+        if not (ROOT/'resources/cardwav.bin').is_file():
+            self.skipTest('Prebuilt card WAV unit required')
         payload, _, _ = expected_payload(self.stock, FEATURES, '04.16', '', 'rwg-research', card_wav=True)
         self.assertGreater(len(payload), len(self.stock))
         self.assertEqual(payload[-15:-2], b'Ver.04.16\0\0\0\0')
@@ -334,6 +334,25 @@ class FirmwareTests(unittest.TestCase):
         self.assertEqual(stack.unpack(self.package, packet, 'eg2070_0416.bi'), payload)
         self.assertTrue(verify_candidate(self.original, packet, FEATURES, '04.16', '', arm=False,
                                          gamut='rwg-research', card_wav=True)['passed'])
+
+    def test_card_wav_prebuilt_unit_is_blank_and_matches_source(self):
+        import json
+        from features import FEATURES
+        from z8cardwav import builder, stack
+        from z8log3g10.verify import expected_payload
+        if not (ROOT/'resources/cardwav.bin').is_file():
+            self.skipTest('Prebuilt card WAV unit required')
+        unit = json.loads((ROOT/'resources/cardwav.json').read_text(encoding='utf-8'))
+        blank = (ROOT/'resources/cardwav.bin').read_bytes()
+        syms = {v[2]: int(v[0], 16) for line in unit['symbols'] if len(v := line.split()) == 3}
+        for name in builder.DISPLACED:
+            at = syms['displaced_'+name] - 0x44f6c000
+            self.assertEqual(blank[at:at+4], bytes(4))
+        if not Path(stack.LLVM).is_dir():
+            self.skipTest('LLVM required for the source comparison')
+        source, _, _ = expected_payload(self.stock, FEATURES, '04.18', '', 'rwg-slog3-dual', card_wav=True, card_wav_source='source')
+        prebuilt, _, _ = expected_payload(self.stock, FEATURES, '04.18', '', 'rwg-slog3-dual', card_wav=True)
+        self.assertEqual(source, prebuilt)
 
     def test_occupied_region_rejected(self):
         data = bytearray(self.baseline)

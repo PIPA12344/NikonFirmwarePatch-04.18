@@ -75,7 +75,9 @@ Windows 使用 `py -3 -m venv .venv` 创建环境，用 `.\.venv\Scripts\Activat
 
 **状态：实验候选，未完成实机验证。** 已完成离线字节核验和 ARM 例程仿真；录制像素、关机后保留选择（尤其开关值 2）、两行直接切换、高光与卡内 WAV 发声仍需实机确认。
 
-构建需要自行取得的官方 `Z_8_0311.bin`、`requirements-log3g10-research.txt` 中的依赖，以及 LLVM（`--card-wav` 使用，目录由 `Z8_LLVM_BIN` 指定）。四项基础功能的预编译补丁不在 Git 中：从原项目 toolkit ZIP 复制 `resources/*.bin`，或加 `--code-source source --compiler clang`。
+构建需要自行取得的官方 `Z_8_0311.bin`、`requirements-log3g10-research.txt` 中的依赖，以及五个预编译补丁单元。它们不在 Git 中，请从 [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) 下载 `opengate.bin`、`pixelshift.bin`、`pixelshift-af.bin`、`precapture.bin`（原项目 v0.3.0-r1 的四项功能，与其 toolkit ZIP 中的文件相同）和 `cardwav.bin`（卡内 WAV），放进 `resources/`。默认使用这些预编译单元，**不需要任何编译器**；文件哈希由 `resources/compiled.json` 与 `resources/cardwav.json` 固定，不一致会直接报错。
+
+`cardwav.bin` 中替换原厂指令的 10 个位置已清零，构建时从你自己的 3.11 读出原指令填回，所以它不含 Nikon 固件内容。想自己编译时：四项功能加 `--code-source source --compiler clang`（需 Apple clang 21.0.0），卡内 WAV 加 `--card-wav-source source`（需 LLVM／clang 19.1.5，目录由 `Z8_LLVM_BIN` 指定）；编译结果同样必须与固定哈希一致。
 
 ```sh
 python -m pip install -r requirements-log3g10-research.txt
@@ -84,7 +86,7 @@ python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_
 python -m unittest tests.test_log3g10 -v
 ```
 
-**复现维护者的 04.18。** 需要同时满足：官方 `Z_8_0311.bin`、原项目 toolkit ZIP 中的 `resources/*.bin`、**LLVM／clang 19.1.5**（维护者使用 Visual Studio 2022 自带版本），以及上面的同一条命令。四项基础补丁和官方输入都有固定哈希，不一致会直接报错；但卡内 WAV 部分由本机 LLVM 编译，没有固定哈希，换用其他 LLVM 版本可能得到不同字节，而校验脚本用同一个 LLVM 重建，仍会显示通过。构建后请自行比对：
+**复现维护者的 04.18。** 使用官方 `Z_8_0311.bin`、Release 中的五个预编译单元和上面的同一条命令，就会得到与维护者逐字节相同的固件：
 
 ```text
 f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin
@@ -165,7 +167,9 @@ Both rows submit the stock N-Log enum; a separate switch selects a private Lut1,
 
 **Status: experimental candidate, not fully camera-verified.** Offline byte checks and ARM routine emulation pass. Recorded pixels, power-off persistence (especially switch value 2), direct row-to-row switching, highlights and card WAV playback still need camera confirmation.
 
-You need your own official `Z_8_0311.bin`, the dependencies in `requirements-log3g10-research.txt`, and LLVM for `--card-wav` (folder set by `Z8_LLVM_BIN`). The four base-feature prebuilt units are not in Git: copy `resources/*.bin` from the upstream toolkit ZIP, or add `--code-source source --compiler clang`.
+You need your own official `Z_8_0311.bin`, the dependencies in `requirements-log3g10-research.txt`, and five prebuilt patch units. They are not in Git: download `opengate.bin`, `pixelshift.bin`, `pixelshift-af.bin`, `precapture.bin` (the upstream v0.3.0-r1 units, identical to its toolkit ZIP) and `cardwav.bin` (card WAV) from the [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) into `resources/`. These are the default and **no compiler is needed**; their hashes are pinned by `resources/compiled.json` and `resources/cardwav.json`, and a mismatch stops the build.
+
+The 10 slots in `cardwav.bin` that replay original instructions are zeroed and filled from your own 3.11 at build time, so it contains no Nikon firmware. To compile instead: add `--code-source source --compiler clang` for the four features (Apple clang 21.0.0) and `--card-wav-source source` for card WAV (LLVM/clang 19.1.5, folder set by `Z8_LLVM_BIN`); compiled output must still match the pinned hashes.
 
 ```sh
 python -m pip install -r requirements-log3g10-research.txt
@@ -174,7 +178,7 @@ python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_
 python -m unittest tests.test_log3g10 -v
 ```
 
-**Reproducing the maintainer's 04.18.** You need the official `Z_8_0311.bin`, `resources/*.bin` from the upstream toolkit ZIP, **LLVM/clang 19.1.5** (the maintainer used the version bundled with Visual Studio 2022), and the same command as above. The base patch units and the official input are hash-pinned and stop the build on mismatch. The card WAV part is compiled by your local LLVM and is not pinned: another LLVM version can produce different bytes, and the verifier rebuilds with that same LLVM, so it still reports a pass. Compare the result yourself:
+**Reproducing the maintainer's 04.18.** The official `Z_8_0311.bin`, the five Release units and the same command above produce firmware byte-identical to the maintainer's:
 
 ```text
 f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin

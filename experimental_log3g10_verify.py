@@ -13,7 +13,8 @@ def main():
     parser.add_argument('candidate', type=Path)
     parser.add_argument('--features', nargs='+', choices=FEATURES, default=list(FEATURES))
     parser.add_argument('--gamut', choices=tuple(PROFILES), default='bt2020')
-    parser.add_argument('--card-wav', action='store_true', help='Candidate includes the card WAV port (rebuild needs LLVM)')
+    parser.add_argument('--card-wav', action='store_true', help='Candidate includes the card WAV port')
+    parser.add_argument('--card-wav-source', choices=('prebuilt', 'source'), default='prebuilt')
     parser.add_argument('--code-source', choices=('prebuilt', 'source'), default='prebuilt')
     parser.add_argument('--compiler', default='clang')
     parser.add_argument('--version', default='04.13')
@@ -23,7 +24,8 @@ def main():
     args = parser.parse_args()
     print(json.dumps(verify_candidate(args.stock.read_bytes(), args.candidate.read_bytes(),
                                      args.features, args.version, args.tag, gamut=args.gamut, card_wav=args.card_wav,
-                                     compiler=args.compiler, code_source=args.code_source), indent=2))
+                                     compiler=args.compiler, code_source=args.code_source,
+                                     card_wav_source=args.card_wav_source), indent=2))
 
 
 if __name__ == '__main__':

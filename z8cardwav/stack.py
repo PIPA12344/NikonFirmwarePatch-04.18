@@ -14,14 +14,18 @@ LLVM = os.environ.get('Z8_LLVM_BIN', 'C:/Program Files/Microsoft Visual Studio/2
 TAIL_BYTES = 13  # 'Ver.' + eight identity bytes + NUL, before the CRC
 
 
-def stack(stock_eg, base_eg, llvm=LLVM, keep=None):
-    """Return the finished EG; `keep` receives the builder's working files."""
+def stack(stock_eg, base_eg, llvm=LLVM, keep=None, code_source='prebuilt'):
+    """Return the finished EG; `keep` receives the builder's working files.
+
+    prebuilt fills resources/cardwav.bin from the input; source compiles with `llvm`.
+    """
     with tempfile.TemporaryDirectory() as work:
         work = Path(work)
         (work / 'stock.eg').write_bytes(stock_eg)
         (work / 'base.eg').write_bytes(base_eg)
         output = Path(keep) if keep else work / 'build'
-        report = builder.build(work / 'stock.eg', output, work / 'base.eg', llvm, tail=base_eg[-2 - TAIL_BYTES:-2])
+        report = builder.build(work / 'stock.eg', output, work / 'base.eg', llvm, tail=base_eg[-2 - TAIL_BYTES:-2],
+                               code_source=code_source)
         return (output / 'patched-eg.bi').read_bytes(), report
 
 

@@ -13,18 +13,18 @@ from z8cardwav import stack
 
 
 def expected_payload(stock, features, version, tag, gamut='bt2020', card_wav=False, keep=None,
-                     compiler='clang', code_source='prebuilt'):
+                     compiler='clang', code_source='prebuilt', card_wav_source='prebuilt'):
     base, _ = feature_build(stock, version, tag, features, compiler, code_source)
     image, meta = p.apply(stock, base, gamut)
     result = bytearray(image.new)
     result[-2:] = binascii.crc_hqx(result[:-2], 0).to_bytes(2, 'big')
     if card_wav:
-        result, meta['card_wav'] = stack.stack(stock, bytes(result), keep=keep)
+        result, meta['card_wav'] = stack.stack(stock, bytes(result), keep=keep, code_source=card_wav_source)
     return bytes(result), image, meta
 
 
 def verify_candidate(original, candidate, features, version, tag, arm=True, gamut='bt2020', card_wav=False,
-                     compiler='clang', code_source='prebuilt'):
+                     compiler='clang', code_source='prebuilt', card_wav_source='prebuilt'):
     require_official_input(original)
     before = Package(original)
     wanted_name = 'eg2070_' + version.replace('.', '') + tag + '.bi'
@@ -38,7 +38,7 @@ def verify_candidate(original, candidate, features, version, tag, arm=True, gamu
         end = 581844 + len(before.eg)
         p.need(before.body[end:-16] == after.body[end:-16] and before.body[-14:] == after.body[-14:], 'Unselected package modules/trailer changed')
     expected, image, meta = expected_payload(before.eg, features, version, tag, gamut, card_wav,
-                                             compiler=compiler, code_source=code_source)
+                                             compiler=compiler, code_source=code_source, card_wav_source=card_wav_source)
     p.need(after_eg == expected, 'Candidate differs from bounded experimental recipe')
     p.need(after_eg[p.STOCK_LUT:p.STOCK_LUT + 3 * 458] == before.eg[p.STOCK_LUT:p.STOCK_LUT + 3 * 458], 'Original N-Log table changed')
     p.need(after_eg[0x4040AB2:p.STOCK_LUT] == before.eg[0x4040AB2:p.STOCK_LUT], 'Original SDR rows changed')

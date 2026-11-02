@@ -7,7 +7,8 @@
 - 新增 `z8cardwav/`：s3lemming/z9-firmware-patch 卡内 WAV 快门声的 Z8 移植（GPL-3.0-or-later），由 `--card-wav` 叠加并重新封包。
 - `features.py`／`z8prores/package.py` 允许无后缀版本身份（`--no-tag`）。
 - 构建与核验入口新增 `--code-source`／`--compiler`；`experimental_log3g10_verify.py` 新增 `--card-wav`；LLVM 目录可用 `Z8_LLVM_BIN` 指定。
-- 仅发布源码与方法，不含 Nikon 固件、解包模块、预编译补丁或构建产物。未完成实机验证。
+- 卡内 WAV 新增预编译模式（默认）：`resources/cardwav.bin` 的 10 个原厂指令位置清零，构建时从输入填回，哈希由 `resources/cardwav.json` 固定，无需 LLVM；`--card-wav-source source` 用 LLVM 19.1.5 编译且必须一致。
+- Git 中只有源码与方法；五个预编译补丁单元作为 Release 附件提供。不含 Nikon 固件、解包模块或构建产物。未完成实机验证。
 
 English: unofficial fork of v0.3.0-r1 adding two experimental H.265 tone rows (Log3G10/RWG and S-Log3/S-Gamut3) and the card WAV shutter-sound port. Source and method only; not camera-verified.
 
