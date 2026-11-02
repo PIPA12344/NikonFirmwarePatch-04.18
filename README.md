@@ -1,5 +1,7 @@
 # NikonFirmwarePatch
 
+## 04.18 实验分支。本仓库是 [XinmiaoZhao/NikonFirmwarePatch](https://github.com/XinmiaoZhao/NikonFirmwarePatch) v0.3.0-r1 的非官方分支，在四项功能之外加入 H.265 10-bit 的 Log3G10 / RWG 与 S-Log3 / S-Gamut3 两个色调行，以及卡内 WAV 快门声移植。新增部分未经原作者审阅或背书，见下方[04.18 实验](#0418-实验h265-log3g10--s-log3)。本仓库只提供方法与源码，不提供成品固件、解包模块或打包好的刷机文件。
+
 [简体中文](#简体中文) · [English](#english) · [Changelog](CHANGELOG.md)
 
 ## 功能预览 / Feature preview
@@ -15,8 +17,6 @@
 ## 简体中文
 
 **当前工具修订：v0.3.0-r1。** 修复 Windows 构建时的源码路径校验错误（[issue #12](https://github.com/XinmiaoZhao/NikonFirmwarePatch/issues/12)），固件功能与 v0.3.0 相同。本工具从官方 **Nikon Z8 C 3.11** 生成用户选择功能的固件。上一工具包为 [v0.3.0](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0)，变化见[更新日志](CHANGELOG.md)。
-
-**04.18 实验分支。** 本仓库是 [XinmiaoZhao/NikonFirmwarePatch](https://github.com/XinmiaoZhao/NikonFirmwarePatch) v0.3.0-r1 的非官方分支，在四项功能之外加入 H.265 10-bit 的 **Log3G10 / RWG** 与 **S-Log3 / S-Gamut3** 两个色调行，以及卡内 WAV 快门声移植。新增部分未经原作者审阅或背书，见下方[04.18 实验](#0418-实验h265-log3g10--s-log3)。本仓库只提供方法与源码，不提供成品固件、解包模块或打包好的刷机文件。
 
 | 选项 | 功能 |
 |---|---|
