@@ -8,9 +8,10 @@
 - `features.py`／`z8prores/package.py` 允许无后缀版本身份（`--no-tag`）。
 - 构建与核验入口新增 `--code-source`／`--compiler`；`experimental_log3g10_verify.py` 新增 `--card-wav`；LLVM 目录可用 `Z8_LLVM_BIN` 指定。
 - 卡内 WAV 新增预编译模式（默认）：`resources/cardwav.bin` 的 10 个原厂指令位置清零，构建时从输入填回，哈希由 `resources/cardwav.json` 固定，无需 LLVM；`--card-wav-source source` 用 LLVM 19.1.5 编译且必须一致。
-- 五个预编译补丁单元随仓库放在 `resources/`（同时作为 Release 附件），哈希固定；`tools/check_repository.py` 只放行这五个与固定哈希一致的 `.bin`。不含 Nikon 固件、解包模块或构建产物。未完成实机验证。
+- 五个预编译补丁单元随仓库放在 `resources/`（同时作为 Release 附件），哈希固定；`tools/check_repository.py` 只放行这五个与固定哈希一致的 `.bin`。不含 Nikon 固件、解包模块或构建产物。
+- 维护者已在 Z8 实机上完成全部验证，包括两个色调行与卡内 WAV 快门声；新增[卡内 WAV 快门声说明](docs/card-wav.md)。
 
-English: unofficial fork of v0.3.0-r1 adding two experimental H.265 tone rows (Log3G10/RWG and S-Log3/S-Gamut3) and the card WAV shutter-sound port. Source and method only; not camera-verified.
+English: unofficial fork of v0.3.0-r1 adding two experimental H.265 tone rows (Log3G10/RWG and S-Log3/S-Gamut3) and the card WAV shutter-sound port. Source and method only; fully camera-verified on a Z8 by the maintainer.
 
 ## [v0.3.0-r1](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1) — 2026-10-29
 

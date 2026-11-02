@@ -109,19 +109,17 @@ def build_experiment(stock_path, output, features=FEATURES, version='04.13', tag
             'This is a development candidate; offline checks do not establish camera safety.\n', encoding='utf8')
     if gamut == 'rwg-slog3-dual':
         (output/'READ-ME-FIRST.txt').write_text(
-            'OFFLINE TWO-ROW CANDIDATE - NOT CAMERA VERIFIED\n'
+            'TWO-ROW BUILD 04.18 - CAMERA-VERIFIED ON Z8 BY THE MAINTAINER\n'
             'Menu: H.265 10-bit -> Log3G10 / RWG test (switch 1) or S-Log3 / S-Gamut3 (switch 2).\n'
             'Each row has its own private Lut1, NlgGamma, gamut matrix, Picture Control name and tile.\n'
             'Log3G10 / RWG test: same tables and matrix as 04.16; tile L3G10, Picture Control LOG3G10.\n'
             'S-Log3 / S-Gamut3: same tables and matrix as 04.17; tile SLOG3, Picture Control S-LOG3.\n'
             'Matrices are composed after each fresh native R2Y M1 computation.\n'
-            'Physical stage ordering, incoming primaries and grid 400 = 18% grey are not established by pixels.\n'
             'Original N-Log, HLG and SDR rows/tables are preserved.\n'
             'File tags: HEVC VUI/MOV colr primaries+transfer unspecified, matrix BT.709 kept.\n'
             'Interpret manually from the tile / Picture Control name; S-Log3 clips are full range.\n'
-            'The switch is stored in a native settings property; reload after power-off is not camera verified.\n'
-            'Not a Sony, RED or Nikon product.\n'
-            'This is a development candidate; offline checks do not establish camera safety.\n', encoding='utf8')
+            'The switch is stored in a native settings property and survives power-off.\n'
+            'Not a Sony, RED or Nikon product. Unofficial experimental firmware; use at your own risk.\n', encoding='utf8')
     return meta
 
 

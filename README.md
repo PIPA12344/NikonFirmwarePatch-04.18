@@ -73,7 +73,9 @@ Windows 使用 `py -3 -m venv .venv` 创建环境，用 `.\.venv\Scripts\Activat
 
 两行都向原厂提交 N-Log 枚举，用独立开关选择私有 Lut1、NlgGamma、色域矩阵与名称；原厂 SDR、HLG、N-Log 数据不变。文件 VUI／colr 标为 2/2/1（未指定），后期需按取景标签或 Picture Control 名手动解释。
 
-**状态：实验候选，未完成实机验证。** 已完成离线字节核验和 ARM 例程仿真；录制像素、关机后保留选择（尤其开关值 2）、两行直接切换、高光与卡内 WAV 发声仍需实机确认。
+**状态：维护者已在 Z8 实机上完成全部验证**，包括录制画面、两行切换、关机后保留选择、高光与卡内 WAV 发声；另有离线字节核验和 ARM 例程仿真。这仍是非官方实验固件。
+
+**卡内 WAV 快门声**（`--card-wav`）：把 48 kHz 立体声 16 位 WAV（最长 1.5 秒）放进卡根目录的 `CUSTOM_SOUND` 文件夹，在设定菜单 → 照相机声音 → 快门音类型中选 **Load WAV from card**，再选文件；原厂 A–E 不受影响。格式、菜单与限制见[卡内 WAV 快门声说明](docs/card-wav.md)。
 
 构建需要自行取得的官方 `Z_8_0311.bin`、`requirements-log3g10-research.txt` 中的依赖，以及五个预编译补丁单元。它们已随仓库放在 `resources/`：`opengate.bin`、`pixelshift.bin`、`pixelshift-af.bin`、`precapture.bin`（原项目 v0.3.0-r1 的四项功能，与其 toolkit ZIP 中的文件相同）和 `cardwav.bin`（卡内 WAV），[v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) 中也有同样的文件。默认使用这些预编译单元，**不需要任何编译器**；文件哈希由 `resources/compiled.json` 与 `resources/cardwav.json` 固定，不一致会直接报错。
 
@@ -96,6 +98,7 @@ f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin
 
 ### 使用与文档
 
+- 04.18 新增：[H.265 Log3G10 / S-Log3](docs/experimental-h265-log3g10.md)、[卡内 WAV 快门声](docs/card-wav.md#简体中文)。
 - 功能指南：[ProRes](docs/prores.md#简体中文)、[RAW／预拍摄](docs/raw-precapture.md#简体中文)、[像素位移](docs/pixelshift.md#简体中文)、[开放门／N-RAW](docs/opengate-nraw.md#简体中文)。
 - [已知问题与功能限制](docs/known-issues.md)、[当前验证](docs/validation.md)、[上一公开版记录](docs/validation-v0.2.0.md)。
 - [发布包与独立验证](docs/releases.md)、[更新日志](CHANGELOG.md)。
@@ -165,7 +168,9 @@ Movie shooting menu → Video file type → H.265 10-bit → Tone mode gains two
 
 Both rows submit the stock N-Log enum; a separate switch selects a private Lut1, NlgGamma, gamut matrix and name. Stock SDR, HLG and N-Log data are unchanged. VUI/colr are tagged 2/2/1 (unspecified), so interpret clips manually from the tile or Picture Control name.
 
-**Status: experimental candidate, not fully camera-verified.** Offline byte checks and ARM routine emulation pass. Recorded pixels, power-off persistence (especially switch value 2), direct row-to-row switching, highlights and card WAV playback still need camera confirmation.
+**Status: fully camera-verified on a Z8 by the maintainer**, including recorded footage, row switching, power-off persistence, highlights and card WAV playback; offline byte checks and ARM routine emulation also pass. It is still unofficial experimental firmware.
+
+**Card WAV shutter sound** (`--card-wav`): put a 48 kHz stereo 16-bit WAV (at most 1.5 s) in `CUSTOM_SOUND` at the card root, then choose **Load WAV from card** under Setup menu → Camera sounds → Type and pick the file; stock A–E are untouched. Format, menu and limits: [card WAV guide](docs/card-wav.md).
 
 You need your own official `Z_8_0311.bin`, the dependencies in `requirements-log3g10-research.txt`, and five prebuilt patch units. They ship in `resources/`: `opengate.bin`, `pixelshift.bin`, `pixelshift-af.bin`, `precapture.bin` (the upstream v0.3.0-r1 units, identical to its toolkit ZIP) and `cardwav.bin` (card WAV); the [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) carries the same files. These are the default and **no compiler is needed**; their hashes are pinned by `resources/compiled.json` and `resources/cardwav.json`, and a mismatch stops the build.
 
@@ -188,6 +193,7 @@ Structure, addresses, curve sources and validation scope (in Chinese): [H.265 Lo
 
 ### Use and documentation
 
+- 04.18 additions: [H.265 Log3G10 / S-Log3](docs/experimental-h265-log3g10.md), [card WAV shutter sound](docs/card-wav.md#english).
 - Feature guides: [ProRes](docs/prores.md#english), [RAW/pre-capture](docs/raw-precapture.md#english), [pixel shift](docs/pixelshift.md#english), [open gate/N-RAW](docs/opengate-nraw.md#english).
 - [Known issues and limits](docs/known-issues.md#english), [current validation](docs/validation.md), [previous public release](docs/validation-v0.2.0.md).
 - [Release contents and verification](docs/releases.md), [changelog](CHANGELOG.md).
