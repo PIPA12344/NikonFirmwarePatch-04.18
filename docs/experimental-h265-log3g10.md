@@ -113,7 +113,7 @@ Lut1 的 12 位副本 NlgGamma 也随之配套：私有表位于 0x40B02600，�
 
 ## 构建与复核
 
-安装 requirements-log3g10-research.txt 中的依赖后，从工程根目录运行。四项基础功能默认读取 `resources/*.bin` 预编译补丁；Git 克隆不含这些文件，请从原项目 [v0.3.0-r1 toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1) 复制（哈希由 `resources/compiled.json` 固定），或加 `--code-source source --compiler clang` 从源码编译。`--card-wav` 默认读取 `resources/cardwav.bin`（从本仓库 Release 下载），其中 10 个重放原厂指令的位置已清零，构建时从输入填回，不需要 LLVM。加 `--card-wav-source source` 则用 LLVM／clang 19.1.5（clang、ld.lld、llvm-nm、llvm-objcopy、llvm-objdump，目录由 `Z8_LLVM_BIN` 指定）编译，结果必须与 `resources/cardwav.json` 一致；源码模式会在构建目录写出新的 `cardwav.bin`／`cardwav.json`，维护者审核后替换。
+安装 requirements-log3g10-research.txt 中的依赖后，从工程根目录运行。四项基础功能默认读取仓库自带的 `resources/*.bin` 预编译补丁（与原项目 [v0.3.0-r1 toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1) 中的文件相同，哈希由 `resources/compiled.json` 固定），或加 `--code-source source --compiler clang` 从源码编译。`--card-wav` 默认读取仓库自带的 `resources/cardwav.bin`，其中 10 个重放原厂指令的位置已清零，构建时从输入填回，不需要 LLVM。加 `--card-wav-source source` 则用 LLVM／clang 19.1.5（clang、ld.lld、llvm-nm、llvm-objcopy、llvm-objdump，目录由 `Z8_LLVM_BIN` 指定）编译，结果必须与 `resources/cardwav.json` 一致；源码模式会在构建目录写出新的 `cardwav.bin`／`cardwav.json`，维护者审核后替换。
 
 ~~~sh
 python experimental_log3g10.py Z_8_0311.bin --output build/my-log3g10-experiment

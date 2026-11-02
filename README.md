@@ -33,7 +33,7 @@
 
 ### 构建与核验
 
-从 [v0.3.0-r1 Release](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1) 下载完整 [toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/download/v0.3.0-r1/NikonFirmwarePatch-v0.3.0-r1-toolkit.zip)。Git 克隆及自动源码包只有源码，需要显式加 `--code-source source --compiler clang`；不要混用 v0.2.0 二进制。
+从 [v0.3.0-r1 Release](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1) 下载完整 [toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/download/v0.3.0-r1/NikonFirmwarePatch-v0.3.0-r1-toolkit.zip)。本分支的 Git 克隆和自动源码包已在 `resources/` 中带有这些预编译补丁，可直接构建；不要混用 v0.2.0 二进制。
 
 需要 Python 3.10+ 和 `requirements.txt` 中的依赖。默认预编译模式不需要 Clang，不会下载补丁或静默转为编译；缺失或改动的机器码会阻止构建。已核对的源码编译器为 Apple clang 21.0.0（clang-2100.1.1.101）；其他编译器须产生相同的固定字节和入口地址。
 
@@ -75,7 +75,7 @@ Windows 使用 `py -3 -m venv .venv` 创建环境，用 `.\.venv\Scripts\Activat
 
 **状态：实验候选，未完成实机验证。** 已完成离线字节核验和 ARM 例程仿真；录制像素、关机后保留选择（尤其开关值 2）、两行直接切换、高光与卡内 WAV 发声仍需实机确认。
 
-构建需要自行取得的官方 `Z_8_0311.bin`、`requirements-log3g10-research.txt` 中的依赖，以及五个预编译补丁单元。它们不在 Git 中，请从 [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) 下载 `opengate.bin`、`pixelshift.bin`、`pixelshift-af.bin`、`precapture.bin`（原项目 v0.3.0-r1 的四项功能，与其 toolkit ZIP 中的文件相同）和 `cardwav.bin`（卡内 WAV），放进 `resources/`。默认使用这些预编译单元，**不需要任何编译器**；文件哈希由 `resources/compiled.json` 与 `resources/cardwav.json` 固定，不一致会直接报错。
+构建需要自行取得的官方 `Z_8_0311.bin`、`requirements-log3g10-research.txt` 中的依赖，以及五个预编译补丁单元。它们已随仓库放在 `resources/`：`opengate.bin`、`pixelshift.bin`、`pixelshift-af.bin`、`precapture.bin`（原项目 v0.3.0-r1 的四项功能，与其 toolkit ZIP 中的文件相同）和 `cardwav.bin`（卡内 WAV），[v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) 中也有同样的文件。默认使用这些预编译单元，**不需要任何编译器**；文件哈希由 `resources/compiled.json` 与 `resources/cardwav.json` 固定，不一致会直接报错。
 
 `cardwav.bin` 中替换原厂指令的 10 个位置已清零，构建时从你自己的 3.11 读出原指令填回，所以它不含 Nikon 固件内容。想自己编译时：四项功能加 `--code-source source --compiler clang`（需 Apple clang 21.0.0），卡内 WAV 加 `--card-wav-source source`（需 LLVM／clang 19.1.5，目录由 `Z8_LLVM_BIN` 指定）；编译结果同样必须与固定哈希一致。
 
@@ -86,7 +86,7 @@ python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_
 python -m unittest tests.test_log3g10 -v
 ```
 
-**复现维护者的 04.18。** 使用官方 `Z_8_0311.bin`、Release 中的五个预编译单元和上面的同一条命令，就会得到与维护者逐字节相同的固件：
+**复现维护者的 04.18。** 使用官方 `Z_8_0311.bin`、仓库自带的五个预编译单元和上面的同一条命令，就会得到与维护者逐字节相同的固件：
 
 ```text
 f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin
@@ -125,7 +125,7 @@ Obtain the official input yourself from [Nikon](https://downloadcenter.nikonimgl
 
 ### Build and verify
 
-Download the complete [toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/download/v0.3.0-r1/NikonFirmwarePatch-v0.3.0-r1-toolkit.zip) from the [v0.3.0-r1 Release](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1). Git clones and automatic source archives contain source only; add `--code-source source --compiler clang`. Do not mix v0.2.0 binaries with this source.
+Download the complete [toolkit ZIP](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/download/v0.3.0-r1/NikonFirmwarePatch-v0.3.0-r1-toolkit.zip) from the [v0.3.0-r1 Release](https://github.com/XinmiaoZhao/NikonFirmwarePatch/releases/tag/v0.3.0-r1). In this fork, Git clones and automatic source archives already include these prebuilt units in `resources/`. Do not mix v0.2.0 binaries with this source.
 
 Python 3.10+ and the dependencies in `requirements.txt` are required. Default prebuilt mode needs no Clang and performs no downloads or compilation fallback. Missing or altered patch bytes stop the build. The reviewed source compiler is Apple clang 21.0.0 (clang-2100.1.1.101); another compiler must produce the same pinned bytes and entry addresses.
 
@@ -167,7 +167,7 @@ Both rows submit the stock N-Log enum; a separate switch selects a private Lut1,
 
 **Status: experimental candidate, not fully camera-verified.** Offline byte checks and ARM routine emulation pass. Recorded pixels, power-off persistence (especially switch value 2), direct row-to-row switching, highlights and card WAV playback still need camera confirmation.
 
-You need your own official `Z_8_0311.bin`, the dependencies in `requirements-log3g10-research.txt`, and five prebuilt patch units. They are not in Git: download `opengate.bin`, `pixelshift.bin`, `pixelshift-af.bin`, `precapture.bin` (the upstream v0.3.0-r1 units, identical to its toolkit ZIP) and `cardwav.bin` (card WAV) from the [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) into `resources/`. These are the default and **no compiler is needed**; their hashes are pinned by `resources/compiled.json` and `resources/cardwav.json`, and a mismatch stops the build.
+You need your own official `Z_8_0311.bin`, the dependencies in `requirements-log3g10-research.txt`, and five prebuilt patch units. They ship in `resources/`: `opengate.bin`, `pixelshift.bin`, `pixelshift-af.bin`, `precapture.bin` (the upstream v0.3.0-r1 units, identical to its toolkit ZIP) and `cardwav.bin` (card WAV); the [v04.18 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.18) carries the same files. These are the default and **no compiler is needed**; their hashes are pinned by `resources/compiled.json` and `resources/cardwav.json`, and a mismatch stops the build.
 
 The 10 slots in `cardwav.bin` that replay original instructions are zeroed and filled from your own 3.11 at build time, so it contains no Nikon firmware. To compile instead: add `--code-source source --compiler clang` for the four features (Apple clang 21.0.0) and `--card-wav-source source` for card WAV (LLVM/clang 19.1.5, folder set by `Z8_LLVM_BIN`); compiled output must still match the pinned hashes.
 
@@ -178,7 +178,7 @@ python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_
 python -m unittest tests.test_log3g10 -v
 ```
 
-**Reproducing the maintainer's 04.18.** The official `Z_8_0311.bin`, the five Release units and the same command above produce firmware byte-identical to the maintainer's:
+**Reproducing the maintainer's 04.18.** The official `Z_8_0311.bin`, the five bundled units and the same command above produce firmware byte-identical to the maintainer's:
 
 ```text
 f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin

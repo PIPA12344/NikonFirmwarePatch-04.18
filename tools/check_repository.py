@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Check index content without printing potential credential values."""
 import argparse
+import hashlib
+import json
 import pathlib
 import re
 import subprocess
@@ -39,6 +41,21 @@ def plain_png(data):
         if kind == b'IEND':
             return n == 0 and at == len(data) and chunks[0] == b'IHDR' and b'IDAT' in chunks
     return False
+
+
+
+
+def patch_units():
+    """Indexed patch units and their pinned SHA-256, read from the indexed recipes."""
+    units = {}
+    for recipe in ('resources/compiled.json', 'resources/cardwav.json'):
+        try:
+            data = json.loads(git('show', ':'+recipe))
+        except subprocess.CalledProcessError:
+            continue
+        for unit in data.get('units', {'cardwav': {**data, 'resource': 'resources/cardwav.bin'}}).values():
+            units[unit['resource']] = unit['sha256']
+    return units
 
 
 BLOCKED_SUFFIXES = {
@@ -80,6 +97,7 @@ def main():
     if any(b'\n' in name or b'\r' in name for name in names):
         raise ValueError('Newline-containing filenames are not supported')
     raw = git('cat-file', '--batch', data=b''.join(b':'+name+b'\n' for name in names)) if names else b''
+    units = patch_units()
     position = 0
     total = 0
     issues = []
@@ -99,7 +117,10 @@ def main():
         total += size
         if size > largest[1]:
             largest = (path, size)
-        blocked = item.suffix.lower() in BLOCKED_SUFFIXES or any(p in BLOCKED_PARTS for p in item.parts)
+        unit = path in units
+        if unit and hashlib.sha256(content).hexdigest() != units[path]:
+            issues.append((path, 'patch unit differs from its pinned recipe hash'))
+        blocked = (item.suffix.lower() in BLOCKED_SUFFIXES and not unit) or any(p in BLOCKED_PARTS for p in item.parts)
         blocked |= item.name in {'.DS_Store', '.env', 'credentials.json', 'secrets.json'}
         blocked |= item.name.startswith('.env.') and item.name != '.env.example'
         if blocked:
@@ -109,7 +130,7 @@ def main():
         screenshot = path in SCREENSHOTS and plain_png(content)
         if path in SCREENSHOTS and not screenshot:
             issues.append((path, 'invalid screenshot or embedded PNG metadata'))
-        if not screenshot:
+        if not screenshot and not unit:
             try:
                 content.decode('utf-8')
             except UnicodeDecodeError:

@@ -3,6 +3,12 @@ build/
 local_data/
 *.bin
 *.BIN
+# Reviewed patch units, hash-pinned by resources/compiled.json and cardwav.json.
+!/resources/opengate.bin
+!/resources/pixelshift.bin
+!/resources/pixelshift-af.bin
+!/resources/precapture.bin
+!/resources/cardwav.bin
 *.bi
 *.payload
 *.elf
