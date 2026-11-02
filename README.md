@@ -84,6 +84,12 @@ python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_
 python -m unittest tests.test_log3g10 -v
 ```
 
+**复现维护者的 04.18。** 需要同时满足：官方 `Z_8_0311.bin`、原项目 toolkit ZIP 中的 `resources/*.bin`、**LLVM／clang 19.1.5**（维护者使用 Visual Studio 2022 自带版本），以及上面的同一条命令。四项基础补丁和官方输入都有固定哈希，不一致会直接报错；但卡内 WAV 部分由本机 LLVM 编译，没有固定哈希，换用其他 LLVM 版本可能得到不同字节，而校验脚本用同一个 LLVM 重建，仍会显示通过。构建后请自行比对：
+
+```text
+f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin
+```
+
 结构、地址、曲线来源与验证范围见 [H.265 Log3G10 / S-Log3 实验说明](docs/experimental-h265-log3g10.md)。
 
 ### 使用与文档
@@ -166,6 +172,12 @@ python -m pip install -r requirements-log3g10-research.txt
 python experimental_log3g10.py "/path/to/Z_8_0311.bin" --gamut rwg-slog3-dual --version 04.18 --no-tag --card-wav --output build/my-0418
 python experimental_log3g10_verify.py "/path/to/Z_8_0311.bin" build/my-0418/Z_8_0418.bin --gamut rwg-slog3-dual --version 04.18 --no-tag --card-wav
 python -m unittest tests.test_log3g10 -v
+```
+
+**Reproducing the maintainer's 04.18.** You need the official `Z_8_0311.bin`, `resources/*.bin` from the upstream toolkit ZIP, **LLVM/clang 19.1.5** (the maintainer used the version bundled with Visual Studio 2022), and the same command as above. The base patch units and the official input are hash-pinned and stop the build on mismatch. The card WAV part is compiled by your local LLVM and is not pinned: another LLVM version can produce different bytes, and the verifier rebuilds with that same LLVM, so it still reports a pass. Compare the result yourself:
+
+```text
+f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e  Z_8_0418.bin
 ```
 
 Structure, addresses, curve sources and validation scope (in Chinese): [H.265 Log3G10 / S-Log3 notes](docs/experimental-h265-log3g10.md).

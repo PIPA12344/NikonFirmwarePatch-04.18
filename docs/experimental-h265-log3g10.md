@@ -189,6 +189,8 @@ python experimental_log3g10.py Z_8_0311.bin --gamut sgamut3-slog3 --version 04.1
 python experimental_log3g10.py Z_8_0311.bin --gamut rwg-slog3-dual --version 04.18 --no-tag --card-wav --output build/my-0418
 ~~~
 
+维护者的 04.18 使用 LLVM／clang 19.1.5（Visual Studio 2022 自带）构建，完整升级包 SHA256 为 `f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e`。卡内 WAV 部分没有固定哈希，其他 LLVM 版本可能产生不同字节，请以此哈希比对。
+
 复核 04.18 输出（需要同样的 LLVM 与基础补丁来源）：
 
 ~~~sh
