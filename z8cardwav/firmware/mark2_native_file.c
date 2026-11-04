@@ -38,3 +38,38 @@ int m2_native_import(const char *path,uint8_t *dst,uint32_t capacity,struct m2_p
     const struct m2_file_ops op={native_open,native_size,native_read,native_close,0};
     return m2_import(&op,&f,path,dst,capacity,info);
 }
+
+#if M2_STAGED_CONFIRM
+struct buffered_file {
+    struct native_file file;
+    uint8_t *buffer;
+    uint32_t buffer_bytes;
+};
+_Static_assert(offsetof(struct buffered_file,file)==0,"native file remains first");
+static void sync_io(struct buffered_file *f) {
+    /* 40D2B9E4 performs DC CIVAC + DSB SY when this region is cacheable.
+     * Both ends of the rounded cache range belong to the dedicated buffer.
+     * Before IO, remove dirty CPU lines; afterwards observe completed native
+     * writes (CPU or DMA) before copying into ordinary CPU-owned storage. */
+    CALL(0x40d2b9e4,uint32_t (*)(void *,int32_t,int32_t))
+        (f->buffer,(int32_t)f->buffer_bytes,0);
+}
+static int buffered_read(void *ctx,uint8_t *dst,uint32_t request,uint32_t *actual) {
+    struct buffered_file *f=ctx;uint32_t got=0;
+    *actual=0;
+    if(request>f->buffer_bytes)return 1;
+    sync_io(f);
+    int rc=native_read(&f->file,f->buffer,request,&got);
+    sync_io(f);
+    if(rc || got>request)return 1;
+    for(uint32_t i=0;i<got;i++)dst[i]=f->buffer[i];
+    *actual=got;return 0;
+}
+int m2_native_import_buffered(const char *path,uint8_t *dst,uint32_t capacity,
+                              struct m2_pcm_info *info,uint8_t *io,uint32_t io_bytes) {
+    if(!io || ((uintptr_t)io&63u) || io_bytes!=M2_IO_BUFFER_BYTES)return M2_ARGUMENT;
+    struct buffered_file f={0};f.buffer=io;f.buffer_bytes=io_bytes;
+    const struct m2_file_ops op={native_open,native_size,buffered_read,native_close,0};
+    return m2_import(&op,&f,path,dst,capacity,info);
+}
+#endif

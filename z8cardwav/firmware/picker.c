@@ -4,10 +4,11 @@
  * Experimental; complete native workflow qualification is performed separately.
  */
 /* Native 5.32 menu -> directory task -> WAV import -> actual photo adapter.
- * One unpublished scratch buffer is reused for validation. At most 20 distinct
+ * Legacy builds reuse one unpublished scratch buffer; 04.23 uses two staging
+ * buffers plus isolated native IO and a reusable pending allocation. At most 20 distinct
  * validated PCM contents are retained, immutable, for the session. Selection
  * rereads the card and compares all bytes; path-only cache hits are forbidden.
- * Published PCM is never overwritten/freed and no completion fence is assumed.
+ * Published PCM is never overwritten/freed and no audio completion fence is assumed.
  */
 #include <stdint.h>
 #include <stddef.h>
@@ -20,6 +21,16 @@ extern int m2_bind_file(uint8_t *,uint32_t,uint32_t);
 extern int m2_native_selection(void);
 extern uint32_t m2_custom_selected(void);
 #define FILE_LIMIT 20u
+#ifndef M2_CONFIRM_IMPORT
+#define M2_CONFIRM_IMPORT 0
+#endif
+#ifndef M2_CONFIRM_RETRY
+#define M2_CONFIRM_RETRY 0
+#endif
+#define M2_UNSTABLE 14
+#if M2_STAGED_CONFIRM
+#define M2_COPY_VERIFY 15
+#endif
 /* ASCII filename stored once as its native UTF-16 display label.  The mount
  * stays separate; construct the complete import/profile path on the stack. */
 struct file {uint16_t label[112];char root;};
@@ -32,6 +43,20 @@ struct picker {
  uint32_t directory_seen,directory_checks,directory_create_attempts,directory_create_status,directory_errors[2];
  uint8_t *cache_pcm[FILE_LIMIT];uint32_t cache_bytes[FILE_LIMIT];
  uint32_t cache_count,cache_hits,scratch_allocations,cache_allocations,cache_full;
+#if M2_CONFIRM_IMPORT
+ uint32_t confirm_attempts,confirm_failures,confirm_flushes;
+#endif
+#if M2_CONFIRM_RETRY
+ uint32_t confirm_retries,confirm_mismatches,confirm_stage,confirm_error;
+ uint32_t confirm_reason,confirm_diff,confirm_rc_first,confirm_rc_second;
+ uint8_t *confirm_first,*confirm_second;
+#endif
+#if M2_STAGED_CONFIRM
+ uint32_t confirm_round,raw_first_hash,raw_second_hash,first_recheck_hash;
+ uint32_t copy_before_hash,copy_after_hash,copy_diff;
+ uint32_t valid_first,valid_second,play_first,play_second;
+ uint16_t diagnostic_label[20];
+#endif
 };
 _Static_assert(sizeof(struct picker)<=6656,"picker fits original +8192 BSS reservation after 1536-byte adapter");
 static void file_path(char path[128],const struct file *f){
@@ -127,6 +152,7 @@ static void *allocate_pcm(uint32_t bytes){
  if(FN(0x40d2c544,uint32_t(*)(uint32_t))(pool)<bytes)return 0;
  return FN(0x40d2c408,void *(*)(uint32_t,uint32_t))(bytes,pool);
 }
+#if !M2_STAGED_CONFIRM
 static int import_cached(const char *path,struct m2_pcm_info *info,uint8_t **out){
  struct picker *p=K;p->attempts++;p->cache_full=0;
  if(!p->retained[0]){
@@ -149,6 +175,157 @@ static int import_cached(const char *path,struct m2_pcm_info *info,uint8_t **out
  uint32_t i=p->cache_count++;p->cache_pcm[i]=pcm;p->cache_bytes[i]=info->play_bytes;
  p->cache_allocations++;*out=pcm;return 0;
 }
+#endif
+/* 04.21 candidate: reproduce the second content-cache read before publishing.
+ * Both complete imports must agree; no audio API or duplicate GUI submit runs.
+ * Reading the cleaned PCM back and cleaning it again is a cache/timing probe,
+ * not proof that the first-selection noise is fixed on hardware. */
+#if M2_CONFIRM_IMPORT
+/* One bounded retry of the complete pair, only after a consistency mismatch.
+ * A failed read is not reclassified as a match. Neither pair publishes audio.
+ * Preserve mismatch diagnostics even when the fresh pair succeeds. */
+#if M2_STAGED_CONFIRM
+/* 04.23: native IO owns its cache lines; two CPU-owned staging buffers are
+ * compared before either can enter the immutable audio cache. A rejected
+ * import never consumes a permanent cache slot. */
+static uint8_t *stage_buffer(unsigned slot,uint32_t bytes){
+ struct picker *p=K;
+ if(!p->retained[slot]){
+  p->retained[slot]=allocate_pcm(bytes+63u);
+  if(!p->retained[slot]){p->cache_full=1;return 0;}
+  if(slot<2)p->scratch_allocations++;
+ }
+ return (uint8_t *)(((uintptr_t)p->retained[slot]+63u)&~(uintptr_t)63u);
+}
+static uint32_t pcm_hash(const uint8_t *pcm,uint32_t bytes){
+ /* Diagnostic only: positive confirmation always compares every PCM byte. */
+ const volatile uint8_t *p=pcm;uint32_t h=2166136261u;
+ for(uint32_t i=0;i<bytes;i++)h=(h^p[i])*16777619u;
+ return h;
+}
+static uint32_t first_difference(const uint8_t *a,const uint8_t *b,uint32_t n){
+ for(uint32_t i=0;i<n;i++)if(a[i]!=b[i])return i;
+ return UINT32_MAX;
+}
+static int read_staged(const char *path,uint8_t *pcm,struct m2_pcm_info *info){
+ struct picker *p=K;uint8_t *io=stage_buffer(2,M2_IO_BUFFER_BYTES);
+ if(!io)return M2_LIMIT;
+ p->attempts++;
+ return m2_native_import_buffered(path,pcm,M2_PCM_MAX,info,io,M2_IO_BUFFER_BYTES);
+}
+static int prepare_confirmed(const uint8_t *source,const struct m2_pcm_info *info,uint8_t **out){
+ struct picker *p=K;
+ for(uint32_t i=0;i<p->cache_count;i++){
+  if(p->cache_bytes[i]==info->play_bytes &&
+     first_difference(p->cache_pcm[i],source,info->play_bytes)==UINT32_MAX){
+   p->cache_hits++;*out=p->cache_pcm[i];return 0;
+  }
+ }
+ if(p->cache_count==FILE_LIMIT){p->cache_full=1;return M2_LIMIT;}
+ uint8_t *pcm=stage_buffer(3,M2_PCM_MAX);if(!pcm)return M2_LIMIT;
+ for(uint32_t i=0;i<info->play_bytes;i++)pcm[i]=source[i];
+ p->copy_before_hash=pcm_hash(pcm,info->play_bytes);
+ p->copy_diff=first_difference(pcm,source,info->play_bytes);
+ if(p->copy_diff!=UINT32_MAX || p->copy_before_hash!=p->raw_first_hash)return M2_COPY_VERIFY;
+ FN(0x40d2b9e4,uint32_t(*)(void *,int32_t,int32_t))(pcm,(int32_t)info->play_bytes,0);
+ p->confirm_flushes++;
+ p->copy_after_hash=pcm_hash(pcm,info->play_bytes);
+ p->copy_diff=first_difference(pcm,source,info->play_bytes);
+ if(p->copy_diff!=UINT32_MAX || p->copy_after_hash!=p->raw_first_hash)return M2_COPY_VERIFY;
+ *out=pcm;return 0;
+}
+static void commit_confirmed(uint8_t *pcm,uint32_t bytes){
+ struct picker *p=K;
+ /* m2_bind_file's failure path has not published the pending allocation.
+  * Transfer its ownership only after a successful bind. Never reuse it again. */
+ if(p->retained[3] && pcm==(uint8_t *)(((uintptr_t)p->retained[3]+63u)&~(uintptr_t)63u)){
+  uint32_t i=p->cache_count++;p->cache_pcm[i]=pcm;p->cache_bytes[i]=bytes;
+  p->cache_allocations++;p->retained[3]=0;
+ }
+}
+static int import_confirmed(const char *path,struct m2_pcm_info *info,uint8_t **out){
+ struct picker *p=K;p->cache_full=0;p->confirm_error=0;p->confirm_stage=0;*out=0;
+ p->confirm_rc_first=p->confirm_rc_second=0;
+ uint8_t *first=stage_buffer(0,M2_PCM_MAX),*second=stage_buffer(1,M2_PCM_MAX);
+ if(!first || !second){p->confirm_error=M2_LIMIT;return M2_LIMIT;}
+ p->confirm_first=first;p->confirm_second=second;
+ for(unsigned round=0;round<2;round++){
+  struct m2_pcm_info check={0};p->confirm_round=round+1;p->confirm_stage=1;
+  int rc=read_staged(path,first,info);p->confirm_rc_first=(uint32_t)rc;
+  if(rc){p->confirm_error=(uint32_t)rc;return rc;}
+  p->raw_first_hash=pcm_hash(first,info->play_bytes);
+  p->confirm_attempts++;p->confirm_stage=2;
+  rc=read_staged(path,second,&check);p->confirm_rc_second=(uint32_t)rc;
+  if(rc){p->confirm_failures++;p->confirm_error=(uint32_t)rc;return rc;}
+  p->raw_second_hash=pcm_hash(second,check.play_bytes);
+  p->first_recheck_hash=pcm_hash(first,info->play_bytes);
+  p->valid_first=info->valid_bytes;p->valid_second=check.valid_bytes;
+  p->play_first=info->play_bytes;p->play_second=check.play_bytes;
+  uint32_t n=info->play_bytes<check.play_bytes?info->play_bytes:check.play_bytes;
+  uint32_t diff=first_difference(first,second,n);
+  uint32_t reason=(diff!=UINT32_MAX?1u:0u)|(info->valid_bytes!=check.valid_bytes?2u:0u)|
+   (info->play_bytes!=check.play_bytes?4u:0u)|(info->frames!=check.frames?8u:0u)|
+   (info->rate!=check.rate?16u:0u)|(info->channels!=check.channels?32u:0u)|
+   (info->bits!=check.bits?64u:0u)|(p->raw_first_hash!=p->first_recheck_hash?128u:0u);
+  if(!reason){
+   p->confirm_stage=4;rc=prepare_confirmed(first,info,out);p->confirm_error=(uint32_t)rc;
+   if(!rc)p->confirm_stage=5;
+   return rc;
+  }
+  p->confirm_failures++;p->confirm_mismatches++;p->confirm_stage=3;
+  p->confirm_reason=reason;p->confirm_diff=diff;
+  if(round==0){p->confirm_retries++;continue;}
+  p->confirm_error=M2_UNSTABLE;return M2_UNSTABLE;
+ }
+ return M2_UNSTABLE;
+}
+#elif M2_CONFIRM_RETRY
+static int import_confirmed(const char *path,struct m2_pcm_info *info,uint8_t **out){
+ struct picker *p=K;p->confirm_error=0;p->confirm_stage=0;
+ p->confirm_rc_first=p->confirm_rc_second=0;
+ for(unsigned round=0;round<2;round++){
+  uint8_t *first=0,*second=0;struct m2_pcm_info check={0};
+  p->confirm_stage=1;
+  int rc=import_cached(path,info,&first);p->confirm_rc_first=(uint32_t)rc;
+  if(rc){p->confirm_error=(uint32_t)rc;return rc;}
+  p->confirm_attempts++;p->confirm_stage=2;
+  rc=import_cached(path,&check,&second);p->confirm_rc_second=(uint32_t)rc;
+  if(rc){p->confirm_failures++;p->confirm_error=(uint32_t)rc;return rc;}
+  uint32_t reason=(first!=second?1u:0u)|(info->valid_bytes!=check.valid_bytes?2u:0u)|
+   (info->play_bytes!=check.play_bytes?4u:0u)|(info->frames!=check.frames?8u:0u)|
+   (info->rate!=check.rate?16u:0u)|(info->channels!=check.channels?32u:0u)|
+   (info->bits!=check.bits?64u:0u);
+  if(!reason){
+   FN(0x40d2b9e4,uint32_t(*)(void *,int32_t,int32_t))(first,(int32_t)info->play_bytes,0);
+   p->confirm_flushes++;p->confirm_stage=5;*out=first;return 0;
+  }
+  p->confirm_failures++;p->confirm_mismatches++;p->confirm_stage=3;
+  p->confirm_reason=reason;p->confirm_first=first;p->confirm_second=second;
+  p->confirm_diff=UINT32_MAX;
+  uint32_t n=info->play_bytes<check.play_bytes?info->play_bytes:check.play_bytes;
+  for(uint32_t i=0;i<n;i++)if(first[i]!=second[i]){p->confirm_diff=i;break;}
+  if(round==0){p->confirm_retries++;continue;}
+  p->confirm_error=M2_UNSTABLE;return M2_UNSTABLE;
+ }
+ return M2_UNSTABLE;
+}
+#else
+static int import_confirmed(const char *path,struct m2_pcm_info *info,uint8_t **out){
+ struct picker *p=K;uint8_t *first=0,*second=0;struct m2_pcm_info check={0};
+ int rc=import_cached(path,info,&first);if(rc)return rc;
+ p->confirm_attempts++;
+ rc=import_cached(path,&check,&second);
+ if(!rc && (first!=second || info->valid_bytes!=check.valid_bytes ||
+    info->play_bytes!=check.play_bytes || info->frames!=check.frames ||
+    info->rate!=check.rate || info->channels!=check.channels || info->bits!=check.bits))rc=M2_IO;
+ if(rc){p->confirm_failures++;return rc;}
+ FN(0x40d2b9e4,uint32_t(*)(void *,int32_t,int32_t))(first,(int32_t)info->play_bytes,0);
+ p->confirm_flushes++;*out=first;return 0;
+}
+#endif
+#else
+#define import_confirmed import_cached
+#endif
 void m2_restore_for_audio(void){
  struct picker *p=K;if(p->restore_attempted || p->active)return;p->restore_attempted=1;
  /* Only the original Type A mapping may own the persisted custom route. */
@@ -160,8 +337,11 @@ void m2_restore_for_audio(void){
  }
  if(found!=1){p->restore_status=found?3:2;p->active=0;return;}
  uint8_t *pcm=0;struct m2_pcm_info info={0};
- int rc=import_cached(choice.path,&info,&pcm);
+ int rc=import_confirmed(choice.path,&info,&pcm);
  if(!rc)rc=m2_bind_file(pcm,info.play_bytes,UINT32_MAX);
+#if M2_STAGED_CONFIRM
+ if(!rc)commit_confirmed(pcm,info.play_bytes);
+#endif
  p->restore_status=rc?5:0;
  if(!rc){p->info=info;p->last_PCM=pcm;p->last_bytes=info.play_bytes;p->imports++;p->published=1;for(unsigned i=0;i<128;i++)p->loaded_path[i]=choice.path[i];}
  p->active=0;
@@ -203,10 +383,13 @@ void mark2_discovery_submit(void **outer){
  uint32_t file=id-0x7e21;if(file>=p->count)return;
  p->active=3;uint8_t *pcm=0;struct m2_pcm_info info={0};
  char path[128];file_path(path,&p->files[file]);
- p->import_status=import_cached(path,&info,&pcm);
+ p->import_status=import_confirmed(path,&info,&pcm);
  if(!p->import_status){
   if(m2_bind_file(pcm,info.play_bytes,file)){p->import_status=M2_BUSY;p->busy++;}
   else{
+#if M2_STAGED_CONFIRM
+   commit_confirmed(pcm,info.play_bytes);
+#endif
    p->restore_attempted=1;for(unsigned i=0;i<128;i++){p->loaded_path[i]=path[i];if(!path[i])break;}
    p->persist_status=save_profile(p->loaded_path[0],p->loaded_path,1);
    /* Commit the newly selected card first. Only then disable an older enabled
@@ -247,6 +430,32 @@ void mark2_picker_label(uint32_t language,uint32_t label,const uint16_t **out,ui
   static const uint16_t loadfail[]={'L','o','a','d',' ','f','a','i','l','e','d',' ','-',' ','c','h','e','c','k',' ','W','A','V'};
   static const uint16_t full[]={'C','a','c','h','e',' ','f','u','l','l',' ','-',' ','r','e','s','t','a','r','t'};
   static const uint16_t busy[]={'A','u','d','i','o',' ','b','u','s','y',' ','-',' ','r','e','t','r','y'};
+#if M2_CONFIRM_RETRY
+#if M2_STAGED_CONFIRM
+  static const uint16_t copyfail[]={'W','A','V',' ','c','o','p','y',' ','d','i','f','f',' ','-',' ','r','e','t','r','y'};
+  if(K->import_status==M2_COPY_VERIFY){*out=copyfail;*bytes=sizeof copyfail;return;}
+  if(K->import_status==M2_UNSTABLE){
+   const char *prefix="WAV diff ",*hex="0123456789ABCDEF";
+   for(unsigned i=0;i<9;i++)K->diagnostic_label[i]=(uint8_t)prefix[i];
+   K->diagnostic_label[9]=hex[(K->confirm_reason>>4)&15u];
+   K->diagnostic_label[10]=hex[K->confirm_reason&15u];
+   K->diagnostic_label[11]=' ';K->diagnostic_label[12]='@';
+   for(unsigned i=0;i<6;i++)K->diagnostic_label[13+i]=K->confirm_diff==UINT32_MAX?'-':hex[(K->confirm_diff>>(20-4*i))&15u];
+   *out=K->diagnostic_label;*bytes=19u*2u;return;
+  }
+#else
+  static const uint16_t mismatch[]={'W','A','V',' ','m','i','s','m','a','t','c','h',' ','-',' ','r','e','t','r','y'};
+#endif
+  static const uint16_t readfail[]={'W','A','V',' ','r','e','a','d',' ','f','a','i','l','e','d',' ','-',' ','r','e','t','r','y'};
+#if !M2_STAGED_CONFIRM
+  if(K->import_status==M2_UNSTABLE){*out=mismatch;*bytes=sizeof mismatch;return;}
+#endif
+  if(K->import_status && (K->confirm_stage==1 || K->confirm_stage==2) &&
+     (K->import_status==M2_OPEN || K->import_status==M2_SIZE || K->import_status==M2_IO ||
+      K->import_status==M2_EOF || K->import_status==M2_CLOSE)){
+   *out=readfail;*bytes=sizeof readfail;return;
+  }
+#endif
   if(K->import_status){
    if(K->cache_full){*out=full;*bytes=sizeof full;}
    else if(K->import_status==M2_BUSY){*out=busy;*bytes=sizeof busy;}

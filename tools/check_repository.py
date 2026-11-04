@@ -48,12 +48,12 @@ def plain_png(data):
 def patch_units():
     """Indexed patch units and their pinned SHA-256, read from the indexed recipes."""
     units = {}
-    for recipe in ('resources/compiled.json', 'resources/cardwav.json'):
+    for recipe in ('resources/compiled.json', 'resources/cardwav.json', 'resources/cardwav-0423.json'):
         try:
             data = json.loads(git('show', ':'+recipe))
         except subprocess.CalledProcessError:
             continue
-        for unit in data.get('units', {'cardwav': {**data, 'resource': 'resources/cardwav.bin'}}).values():
+        for unit in data.get('units', {'cardwav': {**data, 'resource': recipe.replace('.json', '.bin')}}).values():
             units[unit['resource']] = unit['sha256']
     return units
 

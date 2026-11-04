@@ -1,0 +1,38 @@
+{
+  "version": "04.23",
+  "date": "2026-11-04",
+  "firmware_sha256": "3c8681ca6bfc9befd1c7a8a1356529954d83606fdc789a4005af9609e8abcdd6",
+  "public_source_reproduces_tested_firmware": true,
+  "public_unit_matches_tested_filled_code": true,
+  "legacy_0418_sha256": "f790e606d828cabdc4d491ebe755427e25272e12e93dc405b29d076d7538a44e",
+  "host_tests": {
+    "run": 37,
+    "passed": 22,
+    "skipped_without_official_input": 15
+  },
+  "va_cases": {
+    "gate": 16,
+    "matrix": 160,
+    "curve": 160,
+    "file_type_text": 4
+  },
+  "arm_tests": {
+    "integration": 27,
+    "staged": 13,
+    "status": "PASS",
+    "environment": "Unicorn ARM execution with mocked native IO/audio/cache services; synthetic DMA cases are not hardware evidence"
+  },
+  "qemu": {
+    "status": "PASS_QEMU_SINGLE_FILE_SELECTION",
+    "source": "Recorded development validation, 2026-11-04",
+    "steps": 48,
+    "first_selection_CUS": true,
+    "pcm_and_padding_match": true
+  },
+  "hardware": {
+    "reported_at": "2026-11-04T20:44:05+08:00",
+    "feedback": "首次就显示 CUS，第一张无杂音",
+    "scope": "Tested card/file and first selection/first shot only",
+    "complete_firmware_qualification": false
+  }
+}

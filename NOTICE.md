@@ -18,7 +18,7 @@ The screenshots document the firmware interface running in an emulator. The tool
 
 `z8log3g10/` computes its tables from public specifications: the [RED Log3G10 / REDWideGamutRGB white paper](https://docs.red.com/955-0187/PDF/915-0187%20Rev-C%20%20%20RED%20OPS,%20White%20Paper%20on%20REDWideGamutRGB%20and%20Log3G10.pdf), Sony's S-Log3 constants as published in [ACES IDT.Sony.SLog3_SGamut3.ctl](https://github.com/ampas/aces-dev/blob/710ecbe52c87ce9f4a1e02c8ddf7ea0d6b611cc8/transforms/ctl/idt/vendorSupplied/sony/IDT.Sony.SLog3_SGamut3.ctl), and ITU-R BT.2020 primaries. The 229-node grid and grey placement were cross-checked against [ShiSheng233/NLoader-apps](https://github.com/ShiSheng233/NLoader-apps/tree/0912deac4aff767af56f3ebf9b3f093faff35744/log3g10); no code from that project is included. RED, Sony and Nikon do not endorse this experiment.
 
-This 04.18 fork is not reviewed or endorsed by the NikonFirmwarePatch maintainers.
+This 04.23 fork (updated from 04.18) is not reviewed or endorsed by the NikonFirmwarePatch maintainers.
 
 ## Contributor acknowledgements
 
@@ -44,3 +44,7 @@ These are external development tools and references. This repository does not re
 The generated firmware is experimental. Building, installing or using it can cause data loss, camera malfunction or permanent damage. Users must assess the risks and decide for themselves whether to install it. To the extent permitted by applicable law, the authors and contributors provide no warranty and accept no liability for data loss, camera damage or other losses arising from this project or its outputs. The limitations and disclaimer supplement the warranty and liability provisions in LICENSE; they do not alter third-party rights.
 
 本项目生成的是测试版固件。构建、安装或使用可能造成数据丢失、相机故障或永久损坏。使用者须自行衡量风险并决定是否上机。在适用法律允许的范围内，作者及贡献者不提供担保，不对由此造成的数据损失、相机损失或其他损失承担责任。以上说明补充 LICENSE 中的无担保与责任限制条款，不改变第三方权利。
+
+## 04.23 authored additions
+
+The z8vaassist source and custom tables are GPL-3.0-only. They select authored replacement matrices and curves; original descriptors and stock View Assist tables are read from the user-supplied input. The new resources/cardwav-0423.bin remains GPL-3.0-or-later and has all 10 replayed original-instruction slots zeroed, like the historical cardwav.bin. No firmware image, extracted module, card image, compiler or emulator runtime is distributed.

@@ -1,5 +1,32 @@
 # NikonFirmwarePatch
 
+## 04.23 当前开源版 / Current open-source version
+
+本仓库已从 04.18 更新至 **04.23**，仓库地址沿用原名。基于原有四项功能、Log3G10 / RWG、S-Log3 / S-Gamut3 与卡内 WAV，新增自定义 Log 的 View Assist 和菜单名称联动，修订 WAV 首次选择的导入与确认流程。完整变化见 [更新日志](CHANGELOG.md) 和 [04.23 构建与验证](docs/release-04.23.md)。下方 04.18 章节保留为历史复现说明。
+
+**实机反馈（2026-11-04）：首次选择即显示 CUS，第一张无杂音。** 这只确认本次卡、WAV 与首次选择/首张场景；View Assist 的各输出效果、其他声音、恢复及全部拍摄模式不在此次确认范围内。
+
+### 构建 04.23 / Build 04.23
+
+需要 Python 3.10+、自行取得的官方 Z8 C 3.11 与仓库补丁单元。默认不需要编译器。
+
+```sh
+python -m pip install -r requirements-log3g10-research.txt
+python -m z8vaassist.build "/path/to/Z_8_0311.bin" build/my-0423 --version 04.23
+python -m z8vaassist.verify "/path/to/Z_8_0311.bin" build/my-0423/Z_8_0423.bin --version 04.23
+python -m z8cardwav.verify_staged build/my-0423-card-wav-build
+```
+
+标准配方的固件 SHA256（仅用于自行构建后的比对）：
+
+```text
+3c8681ca6bfc9befd1c7a8a1356529954d83606fdc789a4005af9609e8abcdd6  Z_8_0423.bin
+```
+
+公开内容仍为源码、说明和清零原厂指令槽的补丁单元。**不分发原厂固件、成品固件或解包模块。** 原有五个补丁单元保留，04.23 另用 resources/cardwav-0423.bin；清单与哈希见 resources/cardwav-0423.json。[v04.23 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.23) 提供相同补丁单元及校验和。
+
+English: Updated from 04.18 to **04.23** at the existing repository URL. Adds custom-Log View Assist, matching menu labels and a staged WAV import/confirmation path. The commands above reproduce the tested build without a compiler. On 2026-11-04 the maintainer reported CUS on the first selection and no noise on the first shot, for the tested card/file only; this does not qualify all firmware features or display outputs. Only source, documentation and authored patch units with original-instruction slots zeroed are distributed. The 04.18 sections below are historical instructions.
+
 ## 04.18 实验分支。本仓库是 [XinmiaoZhao/NikonFirmwarePatch](https://github.com/XinmiaoZhao/NikonFirmwarePatch) v0.3.0-r1 的非官方分支，在四项功能之外加入 H.265 10-bit 的 Log3G10 / RWG 与 S-Log3 / S-Gamut3 两个色调行，以及卡内 WAV 快门声移植。新增部分未经原作者审阅或背书，见下方[04.18 实验](#0418-实验h265-log3g10--s-log3)。本仓库只提供方法与源码，不提供成品固件、解包模块或打包好的刷机文件。
 
 [简体中文](#简体中文) · [English](#english) · [Changelog](CHANGELOG.md)

@@ -3,6 +3,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#ifndef M2_STAGED_CONFIRM
+#define M2_STAGED_CONFIRM 0
+#endif
+#if M2_STAGED_CONFIRM
+#define M2_IO_BUFFER_BYTES 4096u
+#endif
+
 /* Prototype policy, not firmware-wide limits. Platform supplies staging storage. */
 #define M2_PCM_MAX 288000u
 #define M2_FILE_MAX 524288u
@@ -31,4 +38,10 @@ int m2_import(const struct m2_file_ops *, void *, const char *,
               uint8_t *, uint32_t, struct m2_pcm_info *);
 /* Laboratory bridge using original 5.32 ROM wrappers. Not a firmware hook. */
 int m2_native_import(const char *, uint8_t *, uint32_t, struct m2_pcm_info *);
+#if M2_STAGED_CONFIRM
+/* Caller owns a dedicated, 64-byte-aligned IO buffer for the entire import.
+ * Native reads never target PCM or parser/stack storage in this route. */
+int m2_native_import_buffered(const char *, uint8_t *, uint32_t,
+                              struct m2_pcm_info *, uint8_t *, uint32_t);
+#endif
 #endif

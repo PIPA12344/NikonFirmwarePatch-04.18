@@ -9,6 +9,7 @@ local_data/
 !/resources/pixelshift-af.bin
 !/resources/precapture.bin
 !/resources/cardwav.bin
+!/resources/cardwav-0423.bin
 *.bi
 *.payload
 *.elf

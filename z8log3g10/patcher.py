@@ -78,6 +78,8 @@ PROFILES = {
                           target='S-Gamut3', matrix=REC2020_TO_SGAMUT3),
     # Two rows in one build: switch value 1 selects the first, 2 the second.
     'rwg-slog3-dual': dict(modes=('rwg-research', 'sgamut3-slog3')),
+    # Same two rows; the Log3G10 row drops the "test" suffix (04.21 on).
+    'rwg-slog3': dict(modes=('rwg-research', 'sgamut3-slog3'), menus=('Log3G10 / RWG', 'S-Log3 / S-Gamut3')),
 }
 # Each further row keeps its own Lut1, NlgGamma, matrix and Picture Control
 # copies at the first row's addresses plus this stride.
@@ -147,7 +149,8 @@ def modes(gamut):
     """Switch value -> that row's profile, menu item and private copies."""
     from .matrix import MATRIX_VA
     names = PROFILES[gamut].get('modes', (gamut,))
-    return {k + 1: dict(PROFILES[name], name=name, item=ITEM + k, string=k, lut=LUT + k * MODE_STRIDE,
+    menus = PROFILES[gamut].get('menus', [PROFILES[name]['menu'] for name in names])
+    return {k + 1: dict(PROFILES[name], name=name, menu=menus[k], item=ITEM + k, string=k, lut=LUT + k * MODE_STRIDE,
                         nlg=NLG + k * MODE_STRIDE, picture_va=PICTURE + k * MODE_STRIDE,
                         matrix_va=MATRIX_VA + k * MODE_STRIDE, tile_ids=(TILE_ID + 2 * k, TILE_ID + 2 * k + 1))
             for k, name in enumerate(names)}

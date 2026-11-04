@@ -8,7 +8,7 @@ Any displaced instruction/resource is read locally from the exact checked input.
 The prebuilt unit (resources/cardwav.bin) has its displaced-instruction slots
 zeroed; they are filled from the same input, so it needs no LLVM.
 """
-import binascii, hashlib, json, struct, subprocess
+import binascii, hashlib, json, re, struct, subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
 EXPECTED_MODULE='f85e0138e2f5e660ece8560de62e0d12cb795e0e14983e50f20b61dce906c46c'
@@ -100,6 +100,19 @@ def build(module,output,base_module=None,llvm=None,tail=b'Ver.04.12.p0\0',code_s
     (O/'layout.ld').write_text('continue_notice_sync_end = 0x40e35424; continue_notice_async_end = 0x40e35594; native_text_continue = 0x4032e134; continue_composite = 0x40f9cfa8; continue_cxx_stop = 0x40f9d010; continue_api = 0x40e31340; continue_pcm = 0x40d23c50; continue_flags = 0x40f9c5d0; continue_terminal = 0x40f9cda4; continue_fast_timer = 0x40f9cc68; SECTIONS { . = 0x44f6c000; .text : { *(.text*) } .rodata : { *(.rodata*) } /DISCARD/ : { *(.comment) *(.eh_frame*) *(.note*) } }\n')
     flags=['-O2','-Wall','-Wextra','-Werror','-ffreestanding','-fno-builtin','-fno-stack-protector','-fno-unwind-tables','-fno-asynchronous-unwind-tables','-mgeneral-regs-only','-mstrict-align','-fno-pic','-march=armv8-a','-mno-outline-atomics']
 
+    # Preserve legacy bytes while selecting version-specific authored code.
+    # Keep 04.18--04.20 byte reproducible; enable confirmation from 04.21.
+    identity=re.fullmatch(rb'Ver\.(\d{2})\.(\d{2})[^\x00]*\x00+',tail)
+    if identity is None: raise ValueError('Invalid card WAV version identity')
+    confirmed_import=tuple(map(int,identity.groups()))>=(4,21)
+    if confirmed_import: flags.append('-DM2_CONFIRM_IMPORT=1')
+    confirmation_retry=tuple(map(int,identity.groups()))>=(4,22)
+    if confirmation_retry: flags.append('-DM2_CONFIRM_RETRY=1')
+    staged_confirmation=tuple(map(int,identity.groups()))>=(4,23)
+    if staged_confirmation: flags.append('-DM2_STAGED_CONFIRM=1')
+
+    suffix = '' if not confirmed_import else '-'+''.join(x.decode() for x in identity.groups())
+    UNIT = ROOT.parent/'resources'/('cardwav'+suffix+'.json')
     if code_source=='source':
      for unit in ['picker','mark2_import','mark2_native_file','profile','profile_native','runtime']:run(['aarch64-linux-gnu-gcc',*flags,'-c',unit+'.c','-o',unit+'.o'])
      run(['aarch64-linux-gnu-gcc',*flags,'-c','adapter.c','-o','adapter.o']);run(['aarch64-linux-gnu-gcc','-c','hooks.S','-o','hooks.o']);run(['aarch64-linux-gnu-ld','--build-id=none','-T','layout.ld','adapter.o','hooks.o','picker.o','mark2_import.o','mark2_native_file.o','profile.o','profile_native.o','runtime.o','-o','adapter.elf']);assert not run(['aarch64-linux-gnu-nm','-u','adapter.elf']).strip()
@@ -113,11 +126,12 @@ def build(module,output,base_module=None,llvm=None,tail=b'Ver.04.12.p0\0',code_s
      for name,pc in DISPLACED.items():
       at=syms['displaced_'+name]-ENTRY;assert code[at:at+4]==orig[pc-BASE:pc-BASE+4];blank[at:at+4]=bytes(4)
      unit=dict(bytes=len(blank),sha256=sha(blank),filled_sha256=sha(code),compiler=compiler,symbols=symbol_text.splitlines())
+     if staged_confirmation: unit['record_layouts']=(O/'record-layouts.txt').read_text(encoding='utf-8')
      (O/'cardwav.bin').write_bytes(blank);(O/'cardwav.json').write_text(json.dumps(unit,indent=1)+'\n',encoding='utf-8')
      if UNIT.is_file() and json.loads(UNIT.read_text(encoding='utf-8'))!=unit: raise ValueError('Compiled card WAV unit differs from the reviewed resources/cardwav.json (expected '+json.loads(UNIT.read_text(encoding='utf-8'))['compiler']+')')
     else:
      unit=json.loads(UNIT.read_text(encoding='utf-8'));path=UNIT.with_suffix('.bin')
-     if not path.is_file(): raise ValueError('Prebuilt card WAV unit missing: resources/cardwav.bin; download it from the Release or select source with LLVM')
+     if not path.is_file(): raise ValueError('Prebuilt card WAV unit missing: '+str(path)+'; use the matching release unit or explicit source mode')
      blank=path.read_bytes()
      if len(blank)!=unit['bytes'] or sha(blank)!=unit['sha256']: raise ValueError('Prebuilt card WAV unit differs from resources/cardwav.json')
      symbol_text='\n'.join(unit['symbols'])+'\n';syms={v[2]:int(v[0],16)for line in unit['symbols']if len(v:=line.split())==3}
@@ -126,6 +140,7 @@ def build(module,output,base_module=None,llvm=None,tail=b'Ver.04.12.p0\0',code_s
       at=syms['displaced_'+name]-ENTRY;assert code[at:at+4]==bytes(4);code[at:at+4]=orig[pc-BASE:pc-BASE+4]
      code=bytes(code)
      if sha(code)!=unit['filled_sha256']: raise ValueError('Filled card WAV unit differs from the reviewed recipe')
+     if 'record_layouts' in unit: (O/'record-layouts.txt').write_text(unit['record_layouts'],encoding='utf-8')
      (O/'adapter.bin').write_bytes(code);compiler=unit['compiler']+' (prebuilt)'
     (O/'symbols.txt').write_text(symbol_text,encoding='utf-8')
     code=(O/'adapter.bin').read_bytes();end=(ENTRY+len(code)+4095)&~4095
@@ -156,6 +171,6 @@ def build(module,output,base_module=None,llvm=None,tail=b'Ver.04.12.p0\0',code_s
     module_bytes=bytes(b)+struct.pack('>H',binascii.crc_hqx(b,0))
     (O/'patched-eg.bi').write_bytes(module_bytes)
 
-    result=dict(feature='Z8-card-wav',input_module_sha256=sha(raw),base_module_sha256=sha(base),payload_sha256=sha(b),payload_bytes=len(b),module_sha256=sha(module_bytes),module_bytes=len(module_bytes),patches=patches,code_source=code_source,compiler=compiler,device_qualified=False)
+    result=dict(feature='Z8-card-wav',confirmed_import=confirmed_import,confirmation_retry=confirmation_retry,staged_confirmation=staged_confirmation,input_module_sha256=sha(raw),base_module_sha256=sha(base),payload_sha256=sha(b),payload_bytes=len(b),module_sha256=sha(module_bytes),module_bytes=len(module_bytes),patches=patches,code_source=code_source,compiler=compiler,device_qualified=False)
     (O/'build-report.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
     return result

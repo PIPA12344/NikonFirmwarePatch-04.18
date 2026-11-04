@@ -2,6 +2,10 @@
 
 [简体中文](#简体中文) · [English](#english)
 
+**当前 04.23：** 构建请用 [04.23 入口](release-04.23.md)，其中新增暂存确认、对齐 IO 与缓存维护、复制回读和失败不占槽。2026-11-04 实机首次选择 CUS、第一张无杂音，仅覆盖该次卡/文件。下方 04.18 构建命令及验证表述属于历史版本。
+
+**Current 04.23:** see the [new build entry and validation scope](release-04.23.md). The 04.18 build instructions and hardware statements below are historical.
+
 ## 简体中文
 
 **状态：维护者已在 Z8 实机上完成验证。** 另有离线 ARM 集成场景和 WAV 导入边界测试。这仍是非官方实验固件，风险说明见文末。

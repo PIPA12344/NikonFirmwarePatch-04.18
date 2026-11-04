@@ -15,17 +15,17 @@
     },
     "mark2_import.h": {
       "original_sha256": "8823e23ce2066a205b9e3867c450f48db4f22574c76a8ca1e059dcc1d159371f",
-      "adapted_sha256": "8823e23ce2066a205b9e3867c450f48db4f22574c76a8ca1e059dcc1d159371f",
-      "modified": false
+      "adapted_sha256": "17c00dba2836b61ba9eb9d1ec58668d25b38c59e64bfc1c2e9cd12fcc0aa612e",
+      "modified": true
     },
     "mark2_native_file.c": {
       "original_sha256": "2f7bc114255785ed51912863997ba263179b48fa9335b84765e793ee05b583d1",
-      "adapted_sha256": "5a926b198d726eedfad8a1e50553c3a3828ea468bcd5e6391d79f8cd2b3418c6",
+      "adapted_sha256": "58ac8be30a14441bf0d18dc925e75ed1131e1f330b496ce1de4d25c287255497",
       "modified": true
     },
     "picker.c": {
       "original_sha256": "8dc9e9cdc6d49ce2227c9f22cb6c2a280382383cd780031226609079516bb76b",
-      "adapted_sha256": "df96469dcfe350dabb15e40d0c6a00cafda435159fc5778e5d53339102a6fd99",
+      "adapted_sha256": "0d99bd26f034997ebd59d6d7c0c13eb28794cfda1bf227f47dfb14d1e14031bc",
       "modified": true
     },
     "profile.c": {
@@ -50,7 +50,13 @@
     }
   },
   "port_files_sha256": {
-    "builder.py": "2a1b4334b2621f4e8b2d4f3f366521e98a6521e7588c40512ad8f7fac8d519da",
+    "builder.py": "8eefe8dc024845c3512d7d8e353126ec6a942758d1c4a1d4d8add2da45c7498e",
     "build_port.py": "bf5430787dc75f36198e4a9013f996ef732da6ca40b2e3431d2eb22f7556079c"
+  },
+  "public_port_files_sha256": {
+    "builder.py": "b86c7ce8cdf664de8aceb2f92c10045943291a1c4b3e8196c801812ef296a174",
+    "stack.py": "a3fca7d93d5af315b25fb6aa4e59bc591409c77b0e6fcc55bba9e4f88cf0ff1a",
+    "verify_integration.py": "723d0a4e8dfc869a5014dc036d6d79c3e1032a920cab08e06f1d5eecbe91bf92",
+    "verify_staged.py": "19d084ee957f01acf7d33ee2f17dd5879b17465455d345acb785e9ecb1a78d52"
   }
 }
