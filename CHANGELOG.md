@@ -12,10 +12,11 @@
 - 保留最多两轮确认、四次完整导入；读取与格式错误不被重试确认逻辑放行。增加 WAV diff 与 WAV copy diff 提示。
 - 保留每次开机 20 种内容上限。新实现每个成功缓存项保留 288000 字节分配，最多约 5.76 MB；短 WAV 的内存占用增加，池不足仍拒绝加载。
 - 新增 13 项专项 ARM 回归，连同 27 项集成共 40 项；完成封包、限定配方、Log/VA 仿真及 QEMU 单次选择验证。
-- 2026-11-04 实机反馈：首次选择显示 CUS、第一张无杂音。仅确认此次卡/文件及首次选择/首张场景，不代表其他 WAV、恢复、各输出 View Assist 或全部固件功能完成实机验证。
+- 2026-11-04 实机反馈：Log3G10 与 S-Log3 的 View Assist 显示经维护者在 Z8 实机上确认正常。
+- 2026-11-04 实机反馈：首次选择显示 CUS、第一张无杂音。WAV 部分仅确认此次卡/文件及首次选择/首张场景，不代表其他 WAV、恢复或全部固件功能完成实机验证。
 - 保留免编译构建：新增清零原厂指令槽的 cardwav-0423.bin 和固定哈希清单；原 04.18 单元与历史配方保留。仍不上传原厂/成品固件、解包模块和本地研究数据。
 
-English: Cumulative update from 04.18. Adds gated custom-Log View Assist with stock 32..992 nodes and matching menu labels. WAV imports use two unpublished PCM staging buffers, aligned native IO with pre/post cache maintenance, full byte/metadata confirmation and immutable publication only after successful binding. Failed confirmation/copy/busy paths preserve cache capacity. Adds 13 staged ARM regressions to the 27 integration scenarios. The tested card/file now shows CUS on the first selection with clean first-shot audio, as reported by the maintainer; broader hardware behavior remains unqualified. A hash-pinned, zero-slot 04.23 patch unit preserves compiler-free builds; firmware images and extracted modules remain excluded.
+English: Cumulative update from 04.18. Adds gated custom-Log View Assist with stock 32..992 nodes and matching menu labels. WAV imports use two unpublished PCM staging buffers, aligned native IO with pre/post cache maintenance, full byte/metadata confirmation and immutable publication only after successful binding. Failed confirmation/copy/busy paths preserve cache capacity. Adds 13 staged ARM regressions to the 27 integration scenarios. The maintainer confirmed on a Z8 that Log3G10 and S-Log3 View Assist display correctly. The tested card/file now shows CUS on the first selection with clean first-shot audio, as reported by the maintainer; broader WAV behavior remains unqualified. A hash-pinned, zero-slot 04.23 patch unit preserves compiler-free builds; firmware images and extracted modules remain excluded.
 
 ### 中间开发版记录 / Intermediate development history
 

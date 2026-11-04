@@ -4,7 +4,7 @@
 
 本仓库已从 04.18 更新至 **04.23**，仓库地址沿用原名。基于原有四项功能、Log3G10 / RWG、S-Log3 / S-Gamut3 与卡内 WAV，新增自定义 Log 的 View Assist 和菜单名称联动，修订 WAV 首次选择的导入与确认流程。完整变化见 [更新日志](CHANGELOG.md) 和 [04.23 构建与验证](docs/release-04.23.md)。下方 04.18 章节保留为历史复现说明。
 
-**实机反馈（2026-11-04）：首次选择即显示 CUS，第一张无杂音。** 这只确认本次卡、WAV 与首次选择/首张场景；View Assist 的各输出效果、其他声音、恢复及全部拍摄模式不在此次确认范围内。
+**实机反馈（2026-11-04）：Log3G10 与 S-Log3 的 View Assist 显示已在 Z8 实机上确认正常；WAV 首次选择即显示 CUS，第一张无杂音。** WAV 部分只确认本次卡、WAV 与首次选择/首张场景；其他声音、恢复及全部拍摄模式不在此次确认范围内。
 
 ### 构建 04.23 / Build 04.23
 
@@ -25,7 +25,7 @@ python -m z8cardwav.verify_staged build/my-0423-card-wav-build
 
 公开内容仍为源码、说明和清零原厂指令槽的补丁单元。**不分发原厂固件、成品固件或解包模块。** 原有五个补丁单元保留，04.23 另用 resources/cardwav-0423.bin；清单与哈希见 resources/cardwav-0423.json。[v04.23 Release](https://github.com/PIPA12344/NikonFirmwarePatch-04.18/releases/tag/v04.23) 提供相同补丁单元及校验和。
 
-English: Updated from 04.18 to **04.23** at the existing repository URL. Adds custom-Log View Assist, matching menu labels and a staged WAV import/confirmation path. The commands above reproduce the tested build without a compiler. On 2026-11-04 the maintainer reported CUS on the first selection and no noise on the first shot, for the tested card/file only; this does not qualify all firmware features or display outputs. Only source, documentation and authored patch units with original-instruction slots zeroed are distributed. The 04.18 sections below are historical instructions.
+English: Updated from 04.18 to **04.23** at the existing repository URL. Adds custom-Log View Assist, matching menu labels and a staged WAV import/confirmation path. The commands above reproduce the tested build without a compiler. On 2026-11-04 the maintainer confirmed on a Z8 that Log3G10 and S-Log3 View Assist display correctly, and reported CUS on the first selection and no noise on the first shot for the tested card/file; this does not qualify all WAV cases or every firmware feature. Only source, documentation and authored patch units with original-instruction slots zeroed are distributed. The 04.18 sections below are historical instructions.
 
 ## 04.18 实验分支。本仓库是 [XinmiaoZhao/NikonFirmwarePatch](https://github.com/XinmiaoZhao/NikonFirmwarePatch) v0.3.0-r1 的非官方分支，在四项功能之外加入 H.265 10-bit 的 Log3G10 / RWG 与 S-Log3 / S-Gamut3 两个色调行，以及卡内 WAV 快门声移植。新增部分未经原作者审阅或背书，见下方[04.18 实验](#0418-实验h265-log3g10--s-log3)。本仓库只提供方法与源码，不提供成品固件、解包模块或打包好的刷机文件。
 

@@ -26,7 +26,7 @@ python -m z8cardwav.verify_staged build/my-0423-card-wav-build
 ## 使用变化
 
 - 在 H.265 10-bit 下选择 Log3G10 / RWG 或 S-Log3 / S-Gamut3。Log3G10 名称已去掉 test；文件类型页名称随选择更新。
-- 自定义 Log 的 View Assist 使用专用曲线与矩阵，目标是模拟相同场景下原厂 N-Log 的辅助显示；LCD/EVF/HDMI 的真实颜色与输出映射未完成全面实机资格验证，不能据此判断记录素材的颜色正确性。
+- 自定义 Log 的 View Assist 使用专用曲线与矩阵，目标是模拟相同场景下原厂 N-Log 的辅助显示，维护者已在 Z8 实机上确认显示正常。View Assist 只作用于取景显示，不能据此判断记录素材的颜色正确性。
 - WAV 的格式、存放路径与选择方法见 [卡内 WAV 说明](card-wav.md)。04.23 在两份未发布的暂存内确认完整 PCM 与元数据，所有原生 WAV 读取使用独立对齐 IO 缓冲；确认、复制回读和绑定全部通过后才发布。
 - 持续差异显示 WAV diff XX @XXXXXX；复制维护后差异显示 WAV copy diff - retry。错误不会被视为有效音频；失败或 BUSY 不耗永久缓存槽。
 - 每次开机最多 20 种已成功缓存的声音。每项保留 288000 字节，20 项约 5.76 MB；短 WAV 比旧版更占内存，池不足仍拒绝导入。
@@ -38,7 +38,8 @@ python -m z8cardwav.verify_staged build/my-0423-card-wav-build
 - 离线：封包 SHA1/CRC、模块边界、配方重建；16 个 VA 门控、160 个矩阵选择、160 个曲线选择、4 个菜单文字场景，以及原有 Log 例程仿真。
 - ARM：27 项集成加 13 项专项回归。卡、分配器、音频任务和缓存效果使用测试桩；双视图 DMA 案例是合成模型，不证明真实相机的物理根因。
 - QEMU：开发记录中的完整 48 步回放，扫描一次、选文件一次即显示 CUS，PCM 与卡内文件及补零一致。模拟器不是相机。
-- 实机：2026-11-04，维护者反馈「首次就显示 CUS，第一张无杂音」，仅覆盖此次卡/文件与首次选择/首张情形。其他 WAV、关机恢复、连拍、各输出 View Assist 和全部固件功能未因此获得整体资格验证。
+- 实机（View Assist）：2026-11-04，维护者确认 Log3G10 与 S-Log3 的 View Assist 在 Z8 上显示正常。
+- 实机（WAV）：2026-11-04，维护者反馈「首次就显示 CUS，第一张无杂音」，仅覆盖此次卡/文件与首次选择/首张情形。其他 WAV、关机恢复、连拍和全部固件功能未因此获得整体资格验证。
 
 公开验证摘要见 [validation-04.23.json](validation-04.23.json)。原 04.18 的实机与功能记录仍属于该历史版本。构建程序输出的 camera_verified=false 表示离线工具本身没有执行实机测试，与上述独立、有限的用户反馈不冲突。
 
@@ -48,4 +49,4 @@ python -m z8cardwav.verify_staged build/my-0423-card-wav-build
 
 不上传原厂或修改后的完整固件、解包模块、卡镜像、实拍/音频素材、Ghidra 工程、运行环境、编译器、本地日志或研究数据。输出哈希仅供用户本地复现比较。
 
-English: Build with your own official Z8 C 3.11 using the commands above. The default uses hash-pinned authored patch units and needs no compiler. The generated firmware matches the previously tested 04.23 SHA256. Validation includes bounded Log/VA emulation, 27 ARM integration plus 13 staged regressions and a recorded QEMU single-selection run. The maintainer confirmed first-selection CUS and clean first-shot audio for the tested card/file only; broader behavior remains unqualified. Only source, documentation and zero-slot patch units are distributed. Experimental firmware remains subject to the existing LICENSE/NOTICE terms.
+English: Build with your own official Z8 C 3.11 using the commands above. The default uses hash-pinned authored patch units and needs no compiler. The generated firmware matches the previously tested 04.23 SHA256. Validation includes bounded Log/VA emulation, 27 ARM integration plus 13 staged regressions and a recorded QEMU single-selection run. The maintainer confirmed on a Z8 that Log3G10 and S-Log3 View Assist display correctly, and confirmed first-selection CUS and clean first-shot audio for the tested card/file only; broader WAV behavior remains unqualified. Only source, documentation and zero-slot patch units are distributed. Experimental firmware remains subject to the existing LICENSE/NOTICE terms.

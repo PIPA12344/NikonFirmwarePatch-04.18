@@ -32,7 +32,12 @@
   "hardware": {
     "reported_at": "2026-11-04T20:44:05+08:00",
     "feedback": "首次就显示 CUS，第一张无杂音",
-    "scope": "Tested card/file and first selection/first shot only",
-    "complete_firmware_qualification": false
+    "scope": "WAV: tested card/file and first selection/first shot only",
+    "complete_firmware_qualification": false,
+    "view_assist": {
+      "reported_at": "2026-11-04",
+      "camera_verified": true,
+      "scope": "Log3G10 / RWG and S-Log3 / S-Gamut3 View Assist display confirmed correct on a Z8 by the maintainer"
+    }
   }
 }
